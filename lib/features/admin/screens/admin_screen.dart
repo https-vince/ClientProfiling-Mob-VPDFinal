@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../shared/widgets/analytics_card.dart';
 import '../../../shared/widgets/app_drawer.dart';
+import '../../../shared/widgets/loaders/css_style_preloader.dart';
+import '../services/admin_service.dart';
 import 'add_admin_screen.dart';
 import 'add_employee_screen.dart';
 import 'admin_detail_screen.dart';
@@ -14,36 +16,17 @@ class AdminScreen extends StatefulWidget {
 }
 
 class _AdminScreenState extends State<AdminScreen> {
+  final AdminService _adminService = AdminService();
+
   // ── Admin List state ─────────────────────────────────────────────────────
   final TextEditingController _adminSearchController = TextEditingController();
   String _adminSearchQuery = '';
   int _adminCurrentPage = 1;
   final int _adminEntriesPerPage = 5;
+  bool _isLoading = true;
+  String? _errorMessage;
 
-  final List<Map<String, String>> _admins = [
-    {
-      'name': 'Nathaniel Nagal',
-      'firstName': 'Nathaniel',
-      'middleName': 'N/A',
-      'lastName': 'Nagal',
-      'username': 'dev',
-      'phone': '0947-813-3253',
-      'email': 'bullacravecustomerservice@gmail.com',
-      'role': 'Super Admin',
-      'address': 'Star Apple Street, Kasiglahan Rodriguez Rizal',
-    },
-    {
-      'name': 'Arinthea Salamander Vargas',
-      'firstName': 'Arinthea',
-      'middleName': 'Salamander',
-      'lastName': 'Vargas',
-      'username': 'arinthea',
-      'phone': '0912-345-6789',
-      'email': 'arinthea@example.com',
-      'role': 'Admin',
-      'address': '123 Sample Street, Quezon City',
-    },
-  ];
+  List<Map<String, String>> _admins = <Map<String, String>>[];
 
   // ── Employee List state ──────────────────────────────────────────────────
   final TextEditingController _employeeSearchController =
@@ -52,11 +35,49 @@ class _AdminScreenState extends State<AdminScreen> {
   int _employeeCurrentPage = 1;
   final int _employeeEntriesPerPage = 5;
 
-  final List<Map<String, String>> _employees = [
-    {'name': 'Alvince Mavares', 'position': 'Salesperson'},
-    {'name': 'Marion Brix Ouling', 'position': 'Technician'},
-    {'name': 'Vivian Leigh Marion', 'position': 'Technician'},
-  ];
+  List<Map<String, String>> _employees = <Map<String, String>>[];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+  }
+
+  Future<void> _loadData() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final data = await _adminService.fetchData();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _admins = data.admins;
+        _employees = data.employees;
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _errorMessage = e.toString();
+      });
+    } finally {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   // ── Helpers ──────────────────────────────────────────────────────────────
   List<Map<String, String>> get _filteredAdmins {
@@ -106,6 +127,51 @@ class _AdminScreenState extends State<AdminScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF7F5F5),
+        body: Center(child: CssStylePreloader()),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF7F5F5),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF87CEEB),
+          elevation: 0,
+          title: const Text(
+            'Admin',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          centerTitle: true,
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Failed to load admin data.',
+                  style: TextStyle(fontSize: 15),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: _loadData,
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF87CEEB),
       appBar: AppBar(
@@ -147,23 +213,23 @@ class _AdminScreenState extends State<AdminScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               childAspectRatio: 1.5,
-              children: const [
+              children: [
                 AnalyticsCard(
                   title: 'Number of Admins',
-                  value: '11',
+                  value: _admins.length.toString(),
                   backgroundColor: Color(0xFFB3E5FC),
                 ),
                 AnalyticsCard(
                   title: 'Number of Employee',
-                  value: '34',
+                  value: _employees.length.toString(),
                   backgroundColor: Color(0xFFB3E5FC),
                 ),
-                AnalyticsCard(
+                const AnalyticsCard(
                   title: 'Total Spare Parts',
                   value: '0',
                   backgroundColor: Color(0xFFB3E5FC),
                 ),
-                AnalyticsCard(
+                const AnalyticsCard(
                   title: 'Available Spare Parts',
                   value: '1,257',
                   backgroundColor: Color(0xFFB3E5FC),
@@ -218,13 +284,16 @@ class _AdminScreenState extends State<AdminScreen> {
                 ),
               ),
               ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () async {
+                  final changed = await Navigator.push<bool>(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const AddAdminScreen(),
                     ),
                   );
+                  if (changed == true) {
+                    await _loadData();
+                  }
                 },
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('Add Admin'),
@@ -317,13 +386,16 @@ class _AdminScreenState extends State<AdminScreen> {
                 ),
               ),
               ElevatedButton.icon(
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () async {
+                  final changed = await Navigator.push<bool>(
                     context,
                     MaterialPageRoute(
                       builder: (context) => const AddEmployeeScreen(),
                     ),
                   );
+                  if (changed == true) {
+                    await _loadData();
+                  }
                 },
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('Add Employee'),
@@ -468,12 +540,17 @@ class _AdminScreenState extends State<AdminScreen> {
 
   Widget _buildAdminTableRow(BuildContext context, Map<String, String> admin) {
     return InkWell(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => AdminDetailScreen(admin: admin),
-        ),
-      ),
+      onTap: () async {
+        final changed = await Navigator.push<bool>(
+          context,
+          MaterialPageRoute(
+            builder: (context) => AdminDetailScreen(admin: admin),
+          ),
+        );
+        if (changed == true) {
+          await _loadData();
+        }
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(
@@ -499,12 +576,17 @@ class _AdminScreenState extends State<AdminScreen> {
 
   Widget _buildEmployeeTableRow(BuildContext context, Map<String, String> emp) {
     return InkWell(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (context) => EmployeeDetailScreen(employee: emp),
-        ),
-      ),
+      onTap: () async {
+        final changed = await Navigator.push<bool>(
+          context,
+          MaterialPageRoute(
+            builder: (context) => EmployeeDetailScreen(employee: emp),
+          ),
+        );
+        if (changed == true) {
+          await _loadData();
+        }
+      },
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
         decoration: BoxDecoration(

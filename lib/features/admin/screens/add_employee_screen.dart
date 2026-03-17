@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/network/api_exception.dart';
+import '../services/admin_service.dart';
+
 class AddEmployeeScreen extends StatefulWidget {
   const AddEmployeeScreen({Key? key}) : super(key: key);
 
@@ -9,10 +12,18 @@ class AddEmployeeScreen extends StatefulWidget {
 
 class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
   final _formKey = GlobalKey<FormState>();
+  final AdminService _adminService = AdminService();
   final _fullNameController = TextEditingController();
   String? _selectedRole;
+  bool _isSubmitting = false;
 
-  final List<String> _roles = ['Super Admin', 'Admin', 'Salesperson', 'Technician'];
+  final List<String> _roles = [
+    'Super Admin',
+    'Admin',
+    'Salesperson',
+    'Technician',
+    'Customer Representative',
+  ];
 
   @override
   void dispose() {
@@ -104,7 +115,7 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: _submit,
+                  onPressed: _isSubmitting ? null : _submit,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFFC107),
                     foregroundColor: Colors.black87,
@@ -117,7 +128,13 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  child: const Text('Register Employee'),
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Register Employee'),
                 ),
               ),
             ),
@@ -127,12 +144,49 @@ class _AddEmployeeScreenState extends State<AddEmployeeScreen> {
     );
   }
 
-  void _submit() {
-    if (_formKey.currentState!.validate()) {
+  Future<void> _submit() async {
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      await _adminService.createEmployee(
+        fullName: _fullNameController.text.trim(),
+        employeeType: (_selectedRole ?? '').trim(),
+      );
+
+      if (!mounted) {
+        return;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Employee registered successfully')),
       );
-      Navigator.pop(context);
+      Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to register employee.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 

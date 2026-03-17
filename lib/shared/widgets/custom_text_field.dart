@@ -8,6 +8,8 @@ class CustomTextField extends StatefulWidget {
   final bool isPassword;
   final TextEditingController? controller;
   final String? Function(String?)? validator;
+  final String? errorText;
+  final TextInputType? keyboardType;
 
   const CustomTextField({
     Key? key,
@@ -16,6 +18,8 @@ class CustomTextField extends StatefulWidget {
     this.isPassword = false,
     this.controller,
     this.validator,
+    this.errorText,
+    this.keyboardType,
   }) : super(key: key);
 
   @override
@@ -42,11 +46,14 @@ class _CustomTextFieldState extends State<CustomTextField> {
               _isFocused = hasFocus;
             });
           },
-          child: TextField(
+          child: TextFormField(
             controller: widget.controller,
             obscureText: _obscureText,
+            validator: widget.validator,
+            keyboardType: widget.keyboardType,
             decoration: InputDecoration(
               hintText: widget.hintText,
+              errorText: widget.errorText,
               hintStyle: const TextStyle(
                 color: AppColors.textHint,
                 fontSize: 14,
@@ -54,8 +61,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
               ),
               icon: Icon(
                 widget.icon,
-                color:
-                    _isFocused ? AppColors.primary : AppColors.textSecondary,
+                color: _isFocused ? AppColors.primary : AppColors.textSecondary,
                 size: 20,
               ),
               border: InputBorder.none,
@@ -67,9 +73,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
                         });
                       },
                       child: Icon(
-                        _obscureText
-                            ? Icons.visibility_off
-                            : Icons.visibility,
+                        _obscureText ? Icons.visibility_off : Icons.visibility,
                         color: AppColors.textSecondary,
                         size: 20,
                       ),

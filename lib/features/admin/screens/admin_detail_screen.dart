@@ -63,13 +63,16 @@ class AdminDetailScreen extends StatelessWidget {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () async {
+                  final changed = await Navigator.push<bool>(
                     context,
                     MaterialPageRoute(
                       builder: (context) => EditAdminScreen(admin: admin),
                     ),
                   );
+                  if (changed == true && context.mounted) {
+                    Navigator.pop(context, true);
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFFFC107),

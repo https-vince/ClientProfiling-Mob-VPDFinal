@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../../../shared/widgets/analytics_card.dart';
 import '../../../shared/widgets/app_drawer.dart';
+import '../../../shared/widgets/loaders/css_style_preloader.dart';
+import '../services/resellers_service.dart';
 import '../../reseller_detail/screens/reseller_detail_screen.dart';
 import '../../add_reseller/screens/add_reseller_screen.dart';
 
@@ -13,23 +15,61 @@ class ResellersScreen extends StatefulWidget {
 
 class _ResellersScreenState extends State<ResellersScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final ResellersService _resellersService = ResellersService();
+
   int _entriesPerPage = 5;
   int _currentPage = 1;
   String _searchQuery = '';
+  bool _isLoading = true;
+  String? _errorMessage;
 
-  final List<Map<String, String>> resellers = [
-    {
-      'companyName': 'TechFlow Solutions',
-      'email': 'contact@techflow.com',
-      'phoneNumber': '+1 (555) 123-4567',
-    },
-  ];
+  List<Map<String, String>> _resellers = <Map<String, String>>[];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadResellers();
+  }
+
+  Future<void> _loadResellers() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final rows = await _resellersService.fetchResellers();
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _resellers = rows;
+      });
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _errorMessage = e.toString();
+      });
+    } finally {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   List<Map<String, String>> get filteredResellers {
     if (_searchQuery.isEmpty) {
-      return resellers;
+      return _resellers;
     }
-    return resellers.where((reseller) {
+    return _resellers.where((reseller) {
       return reseller['companyName']!.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           reseller['email']!.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           reseller['phoneNumber']!.contains(_searchQuery);
@@ -59,6 +99,51 @@ class _ResellersScreenState extends State<ResellersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        backgroundColor: Color(0xFFF7F5F5),
+        body: Center(child: CssStylePreloader()),
+      );
+    }
+
+    if (_errorMessage != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF7F5F5),
+        appBar: AppBar(
+          backgroundColor: const Color(0xFF87CEEB),
+          elevation: 0,
+          title: const Text(
+            'Resellers',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          centerTitle: true,
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Failed to load resellers.',
+                  style: TextStyle(fontSize: 15),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: _loadResellers,
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF87CEEB),
       appBar: AppBar(
@@ -102,13 +187,13 @@ class _ResellersScreenState extends State<ResellersScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               childAspectRatio: 1.5,
-              children: const [
+              children: [
                 AnalyticsCard(
                   title: 'Overall Resellers',
-                  value: '1',
+                  value: _resellers.length.toString(),
                   backgroundColor: Color(0xFFB3E5FC),
                 ),
-                AnalyticsCard(
+                const AnalyticsCard(
                   title: 'Sold Products',
                   value: '3527',
                   backgroundColor: Color(0xFFB3E5FC),

@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/network/api_exception.dart';
+import '../services/admin_service.dart';
+
 class EditEmployeeScreen extends StatefulWidget {
   final Map<String, String> employee;
 
@@ -11,10 +14,18 @@ class EditEmployeeScreen extends StatefulWidget {
 
 class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
   final _formKey = GlobalKey<FormState>();
+  final AdminService _adminService = AdminService();
   late final TextEditingController _fullNameController;
   String? _selectedRole;
+  bool _isSubmitting = false;
 
-  final List<String> _roles = ['Super Admin', 'Admin', 'Salesperson', 'Technician'];
+  final List<String> _roles = [
+    'Super Admin',
+    'Admin',
+    'Salesperson',
+    'Technician',
+    'Customer Representative',
+  ];
 
   @override
   void initState() {
@@ -107,7 +118,7 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
                 width: double.infinity,
                 height: 52,
                 child: ElevatedButton(
-                  onPressed: _submit,
+                  onPressed: _isSubmitting ? null : _submit,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFFFC107),
                     foregroundColor: Colors.black87,
@@ -120,7 +131,13 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
                       fontWeight: FontWeight.w600,
                     ),
                   ),
-                  child: const Text('Update Admin'),
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Text('Update Employee'),
                 ),
               ),
             ),
@@ -130,12 +147,58 @@ class _EditEmployeeScreenState extends State<EditEmployeeScreen> {
     );
   }
 
-  void _submit() {
-    if (_formKey.currentState!.validate()) {
+  Future<void> _submit() async {
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    final employeeId = (widget.employee['id'] ?? '').trim();
+    if (employeeId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Missing employee ID.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      await _adminService.updateEmployee(
+        id: employeeId,
+        fullName: _fullNameController.text.trim(),
+        employeeType: (_selectedRole ?? '').trim(),
+      );
+
+      if (!mounted) {
+        return;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Employee updated successfully')),
       );
-      Navigator.pop(context);
+      Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update employee.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 

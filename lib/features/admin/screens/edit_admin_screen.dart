@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/network/api_exception.dart';
+import '../services/admin_service.dart';
+
 class EditAdminScreen extends StatefulWidget {
   final Map<String, String> admin;
 
@@ -11,6 +14,7 @@ class EditAdminScreen extends StatefulWidget {
 
 class _EditAdminScreenState extends State<EditAdminScreen> {
   final _formKey = GlobalKey<FormState>();
+  final AdminService _adminService = AdminService();
 
   late final TextEditingController _firstNameController;
   late final TextEditingController _middleNameController;
@@ -21,6 +25,7 @@ class _EditAdminScreenState extends State<EditAdminScreen> {
   late final TextEditingController _addressController;
 
   String? _selectedRole;
+  bool _isSubmitting = false;
 
   final List<String> _roles = ['Super Admin', 'Admin', 'Salesperson', 'Technician'];
 
@@ -30,7 +35,7 @@ class _EditAdminScreenState extends State<EditAdminScreen> {
     _firstNameController =
         TextEditingController(text: widget.admin['firstName'] ?? '');
     _middleNameController =
-        TextEditingController(text: widget.admin['middleName'] ?? 'N/A');
+      TextEditingController(text: widget.admin['middleName'] ?? '');
     _lastNameController =
         TextEditingController(text: widget.admin['lastName'] ?? '');
     _usernameController =
@@ -153,7 +158,7 @@ class _EditAdminScreenState extends State<EditAdminScreen> {
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
-                onPressed: _submit,
+                onPressed: _isSubmitting ? null : _submit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFFFC107),
                   foregroundColor: Colors.black87,
@@ -166,7 +171,13 @@ class _EditAdminScreenState extends State<EditAdminScreen> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                child: const Text('Update Admin'),
+                child: _isSubmitting
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Update Admin'),
               ),
             ),
             const SizedBox(height: 24),
@@ -176,13 +187,64 @@ class _EditAdminScreenState extends State<EditAdminScreen> {
     );
   }
 
-  void _submit() {
-    if (_formKey.currentState!.validate()) {
-      // TODO: wire to backend when ready
+  Future<void> _submit() async {
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    final adminId = (widget.admin['id'] ?? '').trim();
+    if (adminId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Missing admin ID.')),
+      );
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      await _adminService.updateUser(
+        id: adminId,
+        username: _usernameController.text.trim(),
+        firstname: _firstNameController.text.trim(),
+        middlename: _middleNameController.text.trim(),
+        surname: _lastNameController.text.trim(),
+        phonenum: _phoneController.text.trim(),
+        address: _addressController.text.trim(),
+        email: _emailController.text.trim(),
+        role: (_selectedRole ?? '').trim(),
+      );
+
+      if (!mounted) {
+        return;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Admin updated successfully')),
       );
-      Navigator.pop(context);
+      Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to update admin.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 

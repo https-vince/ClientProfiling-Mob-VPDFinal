@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../../core/network/api_exception.dart';
+import '../services/admin_service.dart';
+
 class AddAdminScreen extends StatefulWidget {
   const AddAdminScreen({Key? key}) : super(key: key);
 
@@ -9,6 +12,7 @@ class AddAdminScreen extends StatefulWidget {
 
 class _AddAdminScreenState extends State<AddAdminScreen> {
   final _formKey = GlobalKey<FormState>();
+  final AdminService _adminService = AdminService();
 
   final _firstNameController = TextEditingController();
   final _middleNameController = TextEditingController();
@@ -21,6 +25,7 @@ class _AddAdminScreenState extends State<AddAdminScreen> {
 
   String? _selectedRole;
   bool _obscurePassword = true;
+  bool _isSubmitting = false;
 
   final List<String> _roles = ['Super Admin', 'Admin', 'Salesperson', 'Technician'];
 
@@ -184,7 +189,7 @@ class _AddAdminScreenState extends State<AddAdminScreen> {
               width: double.infinity,
               height: 52,
               child: ElevatedButton(
-                onPressed: _submit,
+                onPressed: _isSubmitting ? null : _submit,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFFFC107),
                   foregroundColor: Colors.black87,
@@ -197,7 +202,13 @@ class _AddAdminScreenState extends State<AddAdminScreen> {
                     fontWeight: FontWeight.w600,
                   ),
                 ),
-                child: const Text('Register Admin'),
+                child: _isSubmitting
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Register Admin'),
               ),
             ),
             const SizedBox(height: 24),
@@ -207,13 +218,56 @@ class _AddAdminScreenState extends State<AddAdminScreen> {
     );
   }
 
-  void _submit() {
-    if (_formKey.currentState!.validate()) {
-      // TODO: wire to backend when ready
+  Future<void> _submit() async {
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      await _adminService.createUser(
+        username: _usernameController.text.trim(),
+        firstname: _firstNameController.text.trim(),
+        middlename: _middleNameController.text.trim(),
+        surname: _lastNameController.text.trim(),
+        phonenum: _phoneController.text.trim(),
+        address: _addressController.text.trim(),
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
+        role: (_selectedRole ?? '').trim(),
+      );
+
+      if (!mounted) {
+        return;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Admin registered successfully')),
       );
-      Navigator.pop(context);
+      Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to register admin.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
 

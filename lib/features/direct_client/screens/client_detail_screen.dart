@@ -1,22 +1,26 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class ClientDetailScreen extends StatelessWidget {
+import '../../../shared/widgets/loaders/css_style_preloader.dart';
+import '../providers/client_detail_provider.dart';
+
+class ClientDetailScreen extends ConsumerStatefulWidget {
   final Map<String, String> client;
 
   const ClientDetailScreen({Key? key, required this.client}) : super(key: key);
 
-  // Static demo products — replace with real data later
-  static const List<Map<String, String>> _products = [
-    {'modelName': 'LG Titan C Max Dryer (CDT)', 'purchaseOrder': 'To Follow'},
-  ];
+  @override
+  ConsumerState<ClientDetailScreen> createState() => _ClientDetailScreenState();
+}
 
-  // Static demo services — replace with real data later
-  static const List<Map<String, String>> _services = [
-    {'reportNo': 'N/A', 'serviceType': 'Delivery & Installation'},
-  ];
+class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
+  int currentProductPage = 1;
+  int currentServicePage = 1;
 
   @override
   Widget build(BuildContext context) {
+    final detailAsync = ref.watch(clientDetailProvider(widget.client));
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: AppBar(
@@ -37,37 +41,63 @@ class ClientDetailScreen extends StatelessWidget {
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.account_circle_outlined, color: Colors.white),
+            icon:
+                const Icon(Icons.account_circle_outlined, color: Colors.white),
             onPressed: () {},
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Shop Details ──────────────────────────────────────────
-            _buildSectionHeader('Shop Details'),
-            const SizedBox(height: 8),
-            _buildShopDetailsCard(),
+      body: detailAsync.when(
+        loading: () => const ColoredBox(
+          color: Color(0xFFF7F5F5),
+          child: Center(child: CssStylePreloader()),
+        ),
+        error: (error, stackTrace) => Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Failed to load client details.',
+                  style: TextStyle(fontSize: 15),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: () => ref.invalidate(clientDetailProvider(widget.client)),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        data: (detail) => SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Shop Details ──────────────────────────────────────────
+              _buildSectionHeader('Shop Details'),
+              const SizedBox(height: 8),
+              _buildShopDetailsCard(detail.shopDetails),
 
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            // ── Product Details ───────────────────────────────────────
-            _buildSectionHeader('Product Details'),
-            const SizedBox(height: 8),
-            _buildProductsCard(),
+              // ── Product Details ───────────────────────────────────────
+              _buildSectionHeader('Product Details'),
+              const SizedBox(height: 8),
+              _buildProductsCard(detail.products),
 
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            // ── Services ─────────────────────────────────────────────
-            _buildSectionHeader('Services'),
-            const SizedBox(height: 8),
-            _buildServicesCard(),
+              // ── Services ─────────────────────────────────────────────
+              _buildSectionHeader('Services'),
+              const SizedBox(height: 8),
+              _buildServicesCard(detail.services),
 
-            const SizedBox(height: 24),
-          ],
+              const SizedBox(height: 24),
+            ],
+          ),
         ),
       ),
     );
@@ -86,7 +116,7 @@ class ClientDetailScreen extends StatelessWidget {
   }
 
   // ── Shop details card ───────────────────────────────────────────────────
-  Widget _buildShopDetailsCard() {
+  Widget _buildShopDetailsCard(Map<String, String> detail) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -104,21 +134,21 @@ class ClientDetailScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _infoRow('Address', client['address'] ?? '-'),
+          _infoRow('Address', detail['address'] ?? '-'),
           _divider(),
-          _infoRow('Pin Location', client['pinLocation'] ?? '-'),
+          _infoRow('Pin Location', detail['pinLocation'] ?? '-'),
           _divider(),
-          _infoRow('Google Maps', client['googleMaps'] ?? '-'),
+          _infoRow('Google Maps', detail['googleMaps'] ?? '-'),
           _divider(),
-          _infoRow('Branch Type', client['branchType'] ?? '-'),
+          _infoRow('Branch Type', detail['branchType'] ?? '-'),
           _divider(),
-          _infoRow('Contact Person', client['contactPerson'] ?? '-'),
+          _infoRow('Contact Person', detail['contactPerson'] ?? '-'),
           _divider(),
-          _infoRow('Contact Person\nEmail', client['contactEmail'] ?? '-'),
+          _infoRow('Contact Person\nEmail', detail['contactEmail'] ?? '-'),
           _divider(),
-          _infoRow('Contact No.', client['contactNo'] ?? '-'),
+          _infoRow('Contact No.', detail['contactNo'] ?? '-'),
           _divider(),
-          _infoRow('Viber No.', client['viberNo'] ?? '-'),
+          _infoRow('Viber No.', detail['viberNo'] ?? '-'),
           const SizedBox(height: 16),
 
           // Edit and Delete action buttons
@@ -157,7 +187,15 @@ class ClientDetailScreen extends StatelessWidget {
   }
 
   // ── Product details card ────────────────────────────────────────────────
-  Widget _buildProductsCard() {
+  Widget _buildProductsCard(List<Map<String, String>> products) {
+    final productsPerPage = 5;
+    final totalPages = (products.length / productsPerPage).ceil();
+    final startIndex = (currentProductPage - 1) * productsPerPage;
+    final endIndex = (startIndex + productsPerPage).clamp(0, products.length);
+    final paginatedProducts = startIndex >= products.length 
+        ? [] 
+        : products.sublist(startIndex, endIndex);
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -209,20 +247,85 @@ class ClientDetailScreen extends StatelessWidget {
           // Table header
           _buildTableHeader(const ['Model Name', 'Purchase Order']),
 
-          // Data rows
-          ..._products.map(
+          // Data rows (paginated)
+          ...paginatedProducts.map(
             (p) => _buildTableRow([p['modelName']!, p['purchaseOrder']!]),
           ),
 
-          // Pagination footer
-          _buildPaginationFooter(_products.length),
+          // Pagination controls
+          if (totalPages > 1)
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Page $currentProductPage of $totalPages',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.black54,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: currentProductPage > 1
+                            ? () => setState(() => currentProductPage--)
+                            : null,
+                        icon: const Icon(Icons.chevron_left, size: 18),
+                        label: const Text('Previous'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2563EB),
+                          disabledBackgroundColor: Colors.grey[300],
+                          foregroundColor: Colors.white,
+                          disabledForegroundColor: Colors.grey[600],
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6)),
+                          elevation: 0,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        onPressed: currentProductPage < totalPages
+                            ? () => setState(() => currentProductPage++)
+                            : null,
+                        label: const Text('Next'),
+                        icon: const Icon(Icons.chevron_right, size: 18),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2563EB),
+                          disabledBackgroundColor: Colors.grey[300],
+                          foregroundColor: Colors.white,
+                          disabledForegroundColor: Colors.grey[600],
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6)),
+                          elevation: 0,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
   }
 
   // ── Services card ───────────────────────────────────────────────────────
-  Widget _buildServicesCard() {
+  Widget _buildServicesCard(List<Map<String, String>> services) {
+    final servicesPerPage = 5;
+    final totalPages = (services.length / servicesPerPage).ceil();
+    final startIndex = (currentServicePage - 1) * servicesPerPage;
+    final endIndex = (startIndex + servicesPerPage).clamp(0, services.length);
+    final paginatedServices = startIndex >= services.length
+        ? []
+        : services.sublist(startIndex, endIndex);
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -275,13 +378,70 @@ class ClientDetailScreen extends StatelessWidget {
           _buildTableHeader(
               const ['Service Order\nReport No.', 'Service Type']),
 
-          // Data rows
-          ..._services.map(
+          // Data rows (paginated)
+          ...paginatedServices.map(
             (s) => _buildTableRow([s['reportNo']!, s['serviceType']!]),
           ),
 
-          // Pagination footer
-          _buildPaginationFooter(_services.length),
+          // Pagination controls
+          if (totalPages > 1)
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Page $currentServicePage of $totalPages',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      color: Colors.black54,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  Row(
+                    children: [
+                      ElevatedButton.icon(
+                        onPressed: currentServicePage > 1
+                            ? () => setState(() => currentServicePage--)
+                            : null,
+                        icon: const Icon(Icons.chevron_left, size: 18),
+                        label: const Text('Previous'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2563EB),
+                          disabledBackgroundColor: Colors.grey[300],
+                          foregroundColor: Colors.white,
+                          disabledForegroundColor: Colors.grey[600],
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6)),
+                          elevation: 0,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton.icon(
+                        onPressed: currentServicePage < totalPages
+                            ? () => setState(() => currentServicePage++)
+                            : null,
+                        label: const Text('Next'),
+                        icon: const Icon(Icons.chevron_right, size: 18),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF2563EB),
+                          disabledBackgroundColor: Colors.grey[300],
+                          foregroundColor: Colors.white,
+                          disabledForegroundColor: Colors.grey[600],
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 8),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(6)),
+                          elevation: 0,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
         ],
       ),
     );
@@ -341,8 +501,7 @@ class ClientDetailScreen extends StatelessWidget {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: BorderRadius.circular(6),
-            borderSide:
-                const BorderSide(color: Color(0xFF87CEEB), width: 1.5),
+            borderSide: const BorderSide(color: Color(0xFF87CEEB), width: 1.5),
           ),
         ),
       ),
@@ -360,8 +519,7 @@ class ClientDetailScreen extends StatelessWidget {
         children: columns.map((col) {
           return Expanded(
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               child: Text(
                 col,
                 style: const TextStyle(
@@ -388,8 +546,7 @@ class ClientDetailScreen extends StatelessWidget {
         children: cells.map((cell) {
           return Expanded(
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
               child: Text(
                 cell,
                 style: const TextStyle(fontSize: 12, color: Colors.black87),

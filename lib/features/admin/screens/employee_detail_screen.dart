@@ -62,14 +62,17 @@ class EmployeeDetailScreen extends StatelessWidget {
               width: double.infinity,
               height: 50,
               child: ElevatedButton(
-                onPressed: () {
-                  Navigator.push(
+                onPressed: () async {
+                  final changed = await Navigator.push<bool>(
                     context,
                     MaterialPageRoute(
                       builder: (context) =>
                           EditEmployeeScreen(employee: employee),
                     ),
                   );
+                  if (changed == true && context.mounted) {
+                    Navigator.pop(context, true);
+                  }
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFFFC107),
