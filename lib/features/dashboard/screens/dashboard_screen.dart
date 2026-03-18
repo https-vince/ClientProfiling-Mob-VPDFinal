@@ -1,17 +1,20 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/widgets/analytics_card.dart';
 import '../../../shared/widgets/app_drawer.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../../preloader/widgets/washing_loader.dart';
+import '../providers/dashboard_provider.dart';
 
-class DashboardScreen extends StatefulWidget {
+class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({Key? key}) : super(key: key);
 
   @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
+  ConsumerState<DashboardScreen> createState() => _DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen>
+class _DashboardScreenState extends ConsumerState<DashboardScreen>
     with SingleTickerProviderStateMixin {
   String selectedService = 'Service Types';
   String selectedMonth = 'Select Months to Compare';
@@ -59,6 +62,53 @@ class _DashboardScreenState extends State<DashboardScreen>
     super.dispose();
   }
 
+  double _soldProductChartMaxY(List<int> soldProductMonthly) {
+    var maxValue = 0;
+    for (final value in soldProductMonthly) {
+      if (value > maxValue) {
+        maxValue = value;
+      }
+    }
+
+    if (maxValue <= 0) {
+      return 100;
+    }
+
+    final withHeadroom = (maxValue * 1.2).ceil();
+    final rounded = ((withHeadroom + 99) ~/ 100) * 100;
+    return rounded.toDouble();
+  }
+
+  double _soldProductChartInterval(List<int> soldProductMonthly) {
+    final maxY = _soldProductChartMaxY(soldProductMonthly);
+    final raw = (maxY / 7).ceil();
+    final rounded = ((raw + 9) ~/ 10) * 10;
+    return rounded.toDouble();
+  }
+
+  List<BarChartGroupData> _soldProductBarGroups(List<int> soldProductMonthly) {
+    return List<BarChartGroupData>.generate(4, (index) {
+      final value = index < soldProductMonthly.length
+          ? soldProductMonthly[index].toDouble()
+          : 0.0;
+
+      return BarChartGroupData(
+        x: index,
+        barRods: [
+          BarChartRodData(
+            toY: value,
+            color: const Color(0xFF6366F1),
+            width: 32,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(4),
+              topRight: Radius.circular(4),
+            ),
+          ),
+        ],
+      );
+    });
+  }
+
   /// Toggle the profile panel open / closed.
   void _toggleProfile() {
     if (_profileVisible) {
@@ -82,6 +132,60 @@ class _DashboardScreenState extends State<DashboardScreen>
   // ── Build ────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
+    final summaryAsync = ref.watch(dashboardSummaryProvider);
+    final monthlyAsync = ref.watch(dashboardMonthlyProvider);
+
+    if (summaryAsync.isLoading || monthlyAsync.isLoading) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF5F7FA),
+        appBar: CustomAppBar(
+          title: 'Dashboard',
+          showMenuButton: true,
+        ),
+        drawer: const AppDrawer(currentPage: 'Dashboard'),
+        body: const ColoredBox(
+          color: Color(0xFFF7F5F5),
+          child: Center(child: WashingLoader(scale: 1.2)),
+        ),
+      );
+    }
+
+    if (summaryAsync.hasError || monthlyAsync.hasError) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF5F7FA),
+        appBar: CustomAppBar(
+          title: 'Dashboard',
+          showMenuButton: true,
+        ),
+        drawer: const AppDrawer(currentPage: 'Dashboard'),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Failed to load dashboard data.',
+                  style: TextStyle(fontSize: 15),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: () {
+                    ref.invalidate(dashboardSummaryProvider);
+                    ref.invalidate(dashboardMonthlyProvider);
+                  },
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    final summary = summaryAsync.value!;
+    final soldProductMonthly = monthlyAsync.value ?? const <int>[];
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: CustomAppBar(
@@ -142,26 +246,26 @@ class _DashboardScreenState extends State<DashboardScreen>
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               childAspectRatio: 1.5,
-              children: const [
+              children: [
                 AnalyticsCard(
                   title: 'Client',
-                  value: '618',
-                  backgroundColor: Color(0xFFB3E5FC),
+                  value: summary.totalClients.toString(),
+                  backgroundColor: const Color(0xFFB3E5FC),
                 ),
                 AnalyticsCard(
                   title: 'Sold Product',
-                  value: '5,627',
-                  backgroundColor: Color(0xFFB3E5FC),
+                  value: summary.totalSoldProducts.toString(),
+                  backgroundColor: const Color(0xFFB3E5FC),
                 ),
                 AnalyticsCard(
                   title: 'Total Services',
-                  value: '625',
-                  backgroundColor: Color(0xFFB3E5FC),
+                  value: summary.totalServices.toString(),
+                  backgroundColor: const Color(0xFFB3E5FC),
                 ),
                 AnalyticsCard(
                   title: 'Shops',
-                  value: '601',
-                  backgroundColor: Color(0xFFB3E5FC),
+                  value: summary.totalShops.toString(),
+                  backgroundColor: const Color(0xFFB3E5FC),
                 ),
               ],
             ),
@@ -191,7 +295,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                     child: BarChart(
                       BarChartData(
                         alignment: BarChartAlignment.spaceAround,
-                        maxY: 700,
+                        maxY: _soldProductChartMaxY(soldProductMonthly),
                         minY: 0,
                         barTouchData: BarTouchData(enabled: false),
                         titlesData: FlTitlesData(
@@ -206,7 +310,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                             sideTitles: SideTitles(
                               showTitles: true,
                               reservedSize: 40,
-                              interval: 100,
+                              interval: _soldProductChartInterval(soldProductMonthly),
                               getTitlesWidget: (value, meta) {
                                 return Text(
                                   value.toInt().toString(),
@@ -243,7 +347,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                         gridData: FlGridData(
                           show: true,
                           drawVerticalLine: false,
-                          horizontalInterval: 100,
+                            horizontalInterval:
+                              _soldProductChartInterval(soldProductMonthly),
                           getDrawingHorizontalLine: (value) {
                             return FlLine(
                               color: Colors.grey[300],
@@ -258,64 +363,7 @@ class _DashboardScreenState extends State<DashboardScreen>
                             bottom: BorderSide(color: Colors.grey[300]!),
                           ),
                         ),
-                        barGroups: [
-                          BarChartGroupData(
-                            x: 0,
-                            barRods: [
-                              BarChartRodData(
-                                toY: 150,
-                                color: const Color(0xFF6366F1),
-                                width: 32,
-                                borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(4),
-                                  topRight: Radius.circular(4),
-                                ),
-                              ),
-                            ],
-                          ),
-                          BarChartGroupData(
-                            x: 1,
-                            barRods: [
-                              BarChartRodData(
-                                toY: 550,
-                                color: const Color(0xFF6366F1),
-                                width: 32,
-                                borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(4),
-                                  topRight: Radius.circular(4),
-                                ),
-                              ),
-                            ],
-                          ),
-                          BarChartGroupData(
-                            x: 2,
-                            barRods: [
-                              BarChartRodData(
-                                toY: 450,
-                                color: const Color(0xFF6366F1),
-                                width: 32,
-                                borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(4),
-                                  topRight: Radius.circular(4),
-                                ),
-                              ),
-                            ],
-                          ),
-                          BarChartGroupData(
-                            x: 3,
-                            barRods: [
-                              BarChartRodData(
-                                toY: 250,
-                                color: const Color(0xFF6366F1),
-                                width: 32,
-                                borderRadius: const BorderRadius.only(
-                                  topLeft: Radius.circular(4),
-                                  topRight: Radius.circular(4),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
+                        barGroups: _soldProductBarGroups(soldProductMonthly),
                       ),
                     ),
                   ),

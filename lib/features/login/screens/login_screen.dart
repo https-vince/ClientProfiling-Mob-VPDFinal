@@ -1,32 +1,50 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../theme/colors.dart';
 import '../../../shared/widgets/custom_text_field.dart';
 import '../../reset_password/screens/reset_password_screen.dart';
 import '../../dashboard/screens/dashboard_screen.dart';
 import '../../preloader/widgets/washing_loader.dart';
+import '../providers/login_provider.dart';
 
-class LoginScreen extends StatefulWidget {
+class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  ConsumerState<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  bool _isLoading = false;
-
   Future<void> _handleLogin() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-    setState(() => _isLoading = true);
-    // Simulate network / auth delay — replace with your real auth call here.
-    await Future.delayed(const Duration(seconds: 3));
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute(builder: (_) => const DashboardScreen()),
-    );
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
+
+    final success = await ref.read(loginProvider.notifier).submit(
+          email: _usernameController.text.trim(),
+          password: _passwordController.text,
+        );
+
+    if (!mounted) {
+      return;
+    }
+
+    if (success) {
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => const DashboardScreen()),
+      );
+      return;
+    }
+
+    final message = ref.read(loginProvider).message;
+    if (message != null && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
   }
 
   @override
@@ -38,6 +56,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final loginState = ref.watch(loginProvider);
     final screenHeight = MediaQuery.of(context).size.height;
 
     return Stack(
@@ -170,6 +189,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 hintText: 'Username/Phone no./Email',
                                 icon: Icons.person_outline,
                                 controller: _usernameController,
+                                keyboardType: TextInputType.emailAddress,
+                                errorText: loginState.emailError,
                                 validator: (value) {
                                   if (value?.isEmpty ?? true) {
                                     return 'This field is required';
@@ -184,6 +205,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 icon: Icons.lock_outline,
                                 isPassword: true,
                                 controller: _passwordController,
+                                errorText: loginState.passwordError,
                                 validator: (value) {
                                   if (value?.isEmpty ?? true) {
                                     return 'Password is required';
@@ -240,7 +262,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                 child: Material(
                                   color: Colors.transparent,
                                   child: InkWell(
-                                    onTap: _isLoading ? null : _handleLogin,
+                                    onTap: loginState.isSubmitting
+                                        ? null
+                                        : _handleLogin,
                                     borderRadius: BorderRadius.circular(24),
                                     child: const Padding(
                                       padding: EdgeInsets.symmetric(
@@ -282,7 +306,7 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     ),
         // Loading overlay — sits on top of the whole screen
-        if (_isLoading)
+        if (loginState.isSubmitting)
           Container(
             color: Colors.black54,
             child: const Center(

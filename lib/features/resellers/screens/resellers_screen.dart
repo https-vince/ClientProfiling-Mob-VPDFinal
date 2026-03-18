@@ -1,55 +1,45 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../shared/widgets/analytics_card.dart';
 import '../../../shared/widgets/app_drawer.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../../preloader/widgets/washing_loader.dart';
+import '../providers/resellers_provider.dart';
 import '../../reseller_detail/screens/reseller_detail_screen.dart';
 import 'add_reseller/screens/add_reseller_screen.dart';
 
-class ResellersScreen extends StatefulWidget {
+class ResellersScreen extends ConsumerStatefulWidget {
   const ResellersScreen({Key? key}) : super(key: key);
 
   @override
-  State<ResellersScreen> createState() => _ResellersScreenState();
+  ConsumerState<ResellersScreen> createState() => _ResellersScreenState();
 }
 
-class _ResellersScreenState extends State<ResellersScreen> {
+class _ResellersScreenState extends ConsumerState<ResellersScreen> {
   final TextEditingController _searchController = TextEditingController();
   int _entriesPerPage = 5;
   int _currentPage = 1;
   String _searchQuery = '';
 
-  final List<Map<String, String>> resellers = [
-    {
-      'companyName': 'TechFlow Solutions',
-      'email': 'contact@techflow.com',
-      'phoneNumber': '+1 (555) 123-4567',
-    },
-  ];
-
-  List<Map<String, String>> get filteredResellers {
+  List<Map<String, String>> _filteredResellers(List<Map<String, String>> rows) {
     if (_searchQuery.isEmpty) {
-      return resellers;
+      return rows;
     }
-    return resellers.where((reseller) {
+    return rows.where((reseller) {
       return reseller['companyName']!.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           reseller['email']!.toLowerCase().contains(_searchQuery.toLowerCase()) ||
           reseller['phoneNumber']!.contains(_searchQuery);
     }).toList();
   }
 
-  List<Map<String, String>> get paginatedResellers {
+  List<Map<String, String>> _paginatedResellers(List<Map<String, String>> filteredResellers) {
     final startIndex = (_currentPage - 1) * _entriesPerPage;
     final endIndex = startIndex + _entriesPerPage;
-    final filtered = filteredResellers;
-    if (startIndex >= filtered.length) return [];
-    return filtered.sublist(
+    if (startIndex >= filteredResellers.length) return [];
+    return filteredResellers.sublist(
       startIndex,
-      endIndex > filtered.length ? filtered.length : endIndex,
+      endIndex > filteredResellers.length ? filteredResellers.length : endIndex,
     );
-  }
-
-  int get totalPages {
-    return (filteredResellers.length / _entriesPerPage).ceil();
   }
 
   @override
@@ -60,6 +50,8 @@ class _ResellersScreenState extends State<ResellersScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final resellersAsync = ref.watch(resellersDataProvider);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
       appBar: CustomAppBar(
@@ -73,7 +65,36 @@ class _ResellersScreenState extends State<ResellersScreen> {
         ],
       ),
       drawer: const AppDrawer(currentPage: 'Resellers'),
-      body: SingleChildScrollView(
+      body: resellersAsync.when(
+        loading: () => const ColoredBox(
+          color: Color(0xFFF7F5F5),
+          child: Center(child: WashingLoader(scale: 1.2)),
+        ),
+        error: (error, stackTrace) => Center(
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Text(
+                  'Failed to load resellers.',
+                  style: TextStyle(fontSize: 15),
+                ),
+                const SizedBox(height: 12),
+                ElevatedButton(
+                  onPressed: () => ref.invalidate(resellersDataProvider),
+                  child: const Text('Retry'),
+                ),
+              ],
+            ),
+          ),
+        ),
+        data: (rows) {
+          final filteredResellers = _filteredResellers(rows);
+          final paginatedResellers = _paginatedResellers(filteredResellers);
+          final totalPages = (filteredResellers.length / _entriesPerPage).ceil().clamp(1, 9999);
+
+          return SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -86,13 +107,13 @@ class _ResellersScreenState extends State<ResellersScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               childAspectRatio: 1.5,
-              children: const [
+              children: [
                 AnalyticsCard(
                   title: 'Overall Resellers',
-                  value: '1',
-                  backgroundColor: Color(0xFFB3E5FC),
+                  value: rows.length.toString(),
+                  backgroundColor: const Color(0xFFB3E5FC),
                 ),
-                AnalyticsCard(
+                const AnalyticsCard(
                   title: 'Sold Products',
                   value: '3527',
                   backgroundColor: Color(0xFFB3E5FC),
@@ -503,6 +524,8 @@ class _ResellersScreenState extends State<ResellersScreen> {
             ),
           ],
         ),
+      );
+        },
       ),
     );
   }
