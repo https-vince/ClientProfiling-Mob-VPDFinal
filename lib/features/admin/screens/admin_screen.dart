@@ -499,6 +499,16 @@ class _AdminScreenState extends State<AdminScreen> {
                     fontWeight: FontWeight.w600,
                     color: Colors.grey[700])),
           ),
+          SizedBox(
+            width: 72,
+            child: Text(
+              'Actions',
+              style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[700]),
+            ),
+          ),
         ],
       ),
     );
@@ -529,13 +539,8 @@ class _AdminScreenState extends State<AdminScreen> {
               child: Text(admin['name']!,
                   style: const TextStyle(fontSize: 13, color: Colors.black87)),
             ),
-            Expanded(
-              flex: 2,
-              child: Text(admin['role']!,
-                  style: const TextStyle(fontSize: 13, color: Colors.black87)),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -565,13 +570,8 @@ class _AdminScreenState extends State<AdminScreen> {
               child: Text(emp['name']!,
                   style: const TextStyle(fontSize: 13, color: Colors.black87)),
             ),
-            Expanded(
-              flex: 2,
-              child: Text(emp['position']!,
-                  style: const TextStyle(fontSize: 13, color: Colors.black87)),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

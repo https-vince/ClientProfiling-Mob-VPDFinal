@@ -5,6 +5,8 @@ import '../../../shared/widgets/custom_app_bar.dart';
 import '../../preloader/widgets/washing_loader.dart';
 import '../providers/client_detail_provider.dart';
 import 'edit_shop_screen.dart';
+import 'productdetailsentities_screen.dart';
+import 'services_entities_screen.dart';
 import 'screens/add_client/add_buttons_screen.dart';
 
 class ClientDetailScreen extends ConsumerStatefulWidget {
@@ -432,18 +434,163 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
     );
   }
 
+  Widget _buildProductRow(BuildContext context, Map<String, String> p) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.grey[100]!)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+              child: Text(p['modelName']!,
+                  style: const TextStyle(fontSize: 12, color: Colors.black87)),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+              child: Text(p['purchaseOrder']!,
+                  style: const TextStyle(fontSize: 12, color: Colors.black87)),
+            ),
+          ),
+          SizedBox(
+            width: 80,
+            child: Center(
+              child: OutlinedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ProductDetailsEntitiesScreen(product: p),
+                    ),
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                  side: const BorderSide(color: Color(0xFF2563EB)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.visibility_outlined,
+                        size: 14, color: Color(0xFF2563EB)),
+                    SizedBox(width: 3),
+                    Text('View',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF2563EB),
+                            fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildServiceRow(BuildContext context, Map<String, String> s) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: Colors.grey[100]!)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+              child: Text(s['reportNo']!,
+                  style: const TextStyle(fontSize: 12, color: Colors.black87)),
+            ),
+          ),
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+              child: Text(s['serviceType']!,
+                  style: const TextStyle(fontSize: 12, color: Colors.black87)),
+            ),
+          ),
+          SizedBox(
+            width: 80,
+            child: Center(
+              child: OutlinedButton(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ServicesEntitiesScreen(
+                        service: s,
+                        shopName: client['shop'] ?? '3J\'s Laundry',
+                      ),
+                    ),
+                  );
+                },
+                style: OutlinedButton.styleFrom(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                  side: const BorderSide(color: Color(0xFF2563EB)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(6)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    Icon(Icons.visibility_outlined,
+                        size: 14, color: Color(0xFF2563EB)),
+                    SizedBox(width: 3),
+                    Text('View',
+                        style: TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF2563EB),
+                            fontWeight: FontWeight.w600)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTableHeader(List<String> columns) {
     return Container(
       decoration: BoxDecoration(
         border: Border.symmetric(horizontal: BorderSide(color: Colors.grey[200]!)),
       ),
       child: Row(
-        children: columns.map((col) {
-          return Expanded(
+        children: [
+          // All columns except the last are Expanded
+          ...columns.sublist(0, columns.length - 1).map((col) => Expanded(
+                child: Padding(
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
+                  child: Text(
+                    col,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.black87,
+                    ),
+                  ),
+                ),
+              )),
+          // Last column ("Actions") is fixed width to align with View button
+          SizedBox(
+            width: 80,
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               child: Text(
-                col,
+                columns.last,
+                textAlign: TextAlign.center,
                 style: const TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -451,8 +598,8 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
                 ),
               ),
             ),
-          );
-        }).toList(),
+          ),
+        ],
       ),
     );
   }

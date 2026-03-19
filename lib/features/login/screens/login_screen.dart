@@ -134,7 +134,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                               ),
                               const SizedBox(height: 8),
                               const Text(
-                                'Sign to your account',
+                                'Sign in to your account',
                                 style: TextStyle(
                                   fontSize: 14,
                                   color: AppColors.textSecondary,
@@ -195,10 +195,12 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                 ),
                               ),
-                              const SizedBox(height: 40),
+                              const SizedBox(height: 28),
 
                               // Sign in button with gradient
-                              Container(
+                              SizedBox(
+                                width: double.infinity,
+                                child: Container(
                                 decoration: BoxDecoration(
                                   gradient: LinearGradient(
                                     colors: [
@@ -227,7 +229,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     borderRadius: BorderRadius.circular(24),
                                     child: const Padding(
                                       padding: EdgeInsets.symmetric(
-                                        vertical: 14,
+                                        vertical: 16,
                                         horizontal: 24,
                                       ),
                                       child: Row(
@@ -240,7 +242,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                               fontSize: 16,
                                               fontWeight: FontWeight.w700,
                                               color: Colors.white,
-                                              letterSpacing: 0.3,
+                                              letterSpacing: 0.5,
                                             ),
                                           ),
                                         ],
@@ -248,6 +250,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                     ),
                                   ),
                                 ),
+                              ),
                               ),
                             ],
                           ),

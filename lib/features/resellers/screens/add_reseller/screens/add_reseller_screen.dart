@@ -84,6 +84,87 @@ class _AddResellerScreenState extends ConsumerState<AddResellerScreen> {
     }
   }
 
+  void _showConfirmDialog() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: EdgeInsets.fromLTRB(
+            24, 20, 24, MediaQuery.of(context).viewInsets.bottom + 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                margin: const EdgeInsets.only(bottom: 20),
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            _summaryRow('Company Name',
+                _nameController.text.isEmpty ? '-' : _nameController.text),
+            _summaryRow('Address',
+                _addressController.text.isEmpty ? '-' : _addressController.text),
+            _summaryRow('Email',
+                _emailController.text.isEmpty ? '-' : _emailController.text),
+            _summaryRow('Phone No.',
+                _phoneController.text.isEmpty ? '-' : _phoneController.text),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  Navigator.pop(context); // close bottom sheet
+                  Navigator.pop(context); // go back to resellers screen
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFC300),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8)),
+                  elevation: 0,
+                ),
+                child: const Text('Confirm',
+                    style: TextStyle(
+                        fontSize: 16, fontWeight: FontWeight.w700)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _summaryRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 14),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+          const SizedBox(height: 2),
+          Text(value,
+              style: const TextStyle(
+                  fontSize: 15,
+                  color: Colors.black87,
+                  fontWeight: FontWeight.w500)),
+        ],
+      ),
+    );
+  }
+
   // Build the input for the current step
   Widget _buildStepContent() {
     switch (_currentStep) {
@@ -270,7 +351,12 @@ class _AddResellerScreenState extends ConsumerState<AddResellerScreen> {
                               width: 30,
                               child: Column(
                                 children: [
-                                  _buildStepDot(step),
+                                  GestureDetector(
+                                    onTap: step <= _currentStep
+                                        ? () => setState(() => _currentStep = step)
+                                        : null,
+                                    child: _buildStepDot(step),
+                                  ),
                                   if (!isLast)
                                     Expanded(
                                       child: Center(
@@ -330,32 +416,8 @@ class _AddResellerScreenState extends ConsumerState<AddResellerScreen> {
               // ── Bottom: Back + Next/Submit ─────────────────────────
               Row(
                 children: [
-                  // Back button (hidden on first step)
-                  if (_currentStep > 0)
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () =>
-                            setState(() => _currentStep--),
-                        style: OutlinedButton.styleFrom(
-                          padding:
-                              const EdgeInsets.symmetric(vertical: 14),
-                          side: BorderSide(color: Colors.grey[300]!),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          foregroundColor: Colors.black87,
-                        ),
-                        child: const Text(
-                          'Back',
-                          style: TextStyle(
-                              fontSize: 15, fontWeight: FontWeight.w600),
-                        ),
-                      ),
-                    ),
-                  if (_currentStep > 0) const SizedBox(width: 12),
                   // Next / Add Reseller button
                   Expanded(
-                    flex: 2,
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : _nextStep,
                       style: ElevatedButton.styleFrom(
