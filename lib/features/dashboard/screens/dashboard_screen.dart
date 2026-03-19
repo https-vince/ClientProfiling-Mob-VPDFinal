@@ -1,9 +1,13 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../../core/network/api_exception.dart';
+import '../../../core/network/auth_session.dart';
 import '../../../shared/widgets/analytics_card.dart';
 import '../../../shared/widgets/app_drawer.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../../login/models/auth_user.dart';
+import '../../login/services/auth_service.dart';
 import '../../preloader/widgets/washing_loader.dart';
 import '../providers/dashboard_provider.dart';
 
@@ -16,12 +20,13 @@ class DashboardScreen extends ConsumerStatefulWidget {
 
 class _DashboardScreenState extends ConsumerState<DashboardScreen>
     with SingleTickerProviderStateMixin {
+  final AuthService _authService = AuthService();
+
   String selectedService = 'Service Types';
   String selectedMonth = 'Select Months to Compare';
 
   // ── Profile panel state ──────────────────────────────────────────────────
   bool _profileVisible = false;
-  bool _isEditing = false;
   late final TextEditingController _usernameCtrl;
   late final TextEditingController _addressCtrl;
   late final TextEditingController _phoneCtrl;
@@ -30,13 +35,17 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
   late final Animation<Offset> _slideAnim;
   late final Animation<double> _fadeAnim;
 
+  AuthUser? _profileUser;
+  bool _isProfileLoading = false;
+  String? _profileError;
+
   @override
   void initState() {
     super.initState();
-    _usernameCtrl = TextEditingController(text: 'dev');
-    _addressCtrl  = TextEditingController(text: 'DEv');
-    _phoneCtrl    = TextEditingController(text: '0962-464-3757');
-    _emailCtrl    = TextEditingController(text: 'maryosepkaalvince@gmail.com');
+    _usernameCtrl = TextEditingController();
+    _addressCtrl = TextEditingController();
+    _phoneCtrl = TextEditingController();
+    _emailCtrl = TextEditingController();
     _profileAnim = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 380),
@@ -50,6 +59,8 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     _fadeAnim = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _profileAnim, curve: Curves.easeOut),
     );
+
+    _loadProfile();
   }
 
   @override
@@ -117,6 +128,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
       });
     } else {
       setState(() => _profileVisible = true);
+      if (_profileUser == null && !_isProfileLoading) {
+        _loadProfile();
+      }
       _profileAnim.forward();
     }
   }
@@ -127,6 +141,57 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     _profileAnim.reverse().then((_) {
       if (mounted) setState(() => _profileVisible = false);
     });
+  }
+
+  Future<void> _loadProfile() async {
+    setState(() {
+      _isProfileLoading = true;
+      _profileError = null;
+    });
+
+    try {
+      final user = await _authService.getAuthenticatedUser();
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _profileUser = user;
+        _usernameCtrl.text = user.username;
+        _addressCtrl.text = user.address;
+        _phoneCtrl.text = user.phonenum;
+        _emailCtrl.text = user.email;
+      });
+    } on ApiException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _profileError = e.message;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _profileError = 'Failed to load profile data.';
+      });
+    } finally {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _isProfileLoading = false;
+      });
+    }
+  }
+
+  Future<void> _logout() async {
+    try {
+      await _authService.logout();
+    } finally {
+      AuthSession.triggerLogout();
+    }
   }
 
   // ── Build ────────────────────────────────────────────────────────────────
@@ -177,7 +242,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
                   child: const Text('Retry'),
                 ),
               ],
-            ),
+            ), 
           ),
         ),
       );
@@ -654,48 +719,6 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
     );
   }
 
-  // ── Editable row helper ─────────────────────────────────────────────────
-  Widget _buildEditRow(String label, TextEditingController controller) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF2563EB), width: 1.5),
-      ),
-      child: Row(
-        children: [
-          Text(
-            '$label:',
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.black54,
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: TextField(
-              controller: controller,
-              textAlign: TextAlign.end,
-              style: const TextStyle(
-                fontSize: 14,
-                color: Colors.black87,
-                fontWeight: FontWeight.w600,
-              ),
-              decoration: const InputDecoration(
-                isDense: true,
-                border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(vertical: 8),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ── Profile panel widget ─────────────────────────────────────────────────
   // Returns the floating card shown when the profile avatar is tapped
   Widget _buildProfilePanel() {
@@ -747,8 +770,10 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             ),
             const SizedBox(height: 12),
             // ── Full name ─────────────────────────────────────────────
-            const Text(
-              'Alvince Maryosep',
+            Text(
+              _profileUser?.fullName.isNotEmpty == true
+                  ? _profileUser!.fullName
+                  : 'User',
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.w700,
@@ -757,29 +782,43 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
             ),
             const SizedBox(height: 4),
             // ── Email subtitle ────────────────────────────────────────
-            const Text(
-              'maryosepkaalvince@gmail.com',
+            Text(
+              _emailCtrl.text.trim().isNotEmpty ? _emailCtrl.text.trim() : '-',
               style: TextStyle(fontSize: 13, color: Colors.black54),
             ),
+            if (_isProfileLoading)
+              const Padding(
+                padding: EdgeInsets.only(top: 10),
+                child: SizedBox(
+                  width: 18,
+                  height: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                ),
+              )
+            else if (_profileError != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 10),
+                child: Text(
+                  _profileError!,
+                  style: const TextStyle(fontSize: 12, color: Color(0xFFB91C1C)),
+                ),
+              ),
             const SizedBox(height: 20),
             // ── Info rows ─────────────────────────────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Column(
                 children: [
-                  _isEditing
-                      ? _buildEditRow('Username', _usernameCtrl)
-                      : _ProfileInfoRow(label: 'Username', value: _usernameCtrl.text),
-                  _isEditing
-                      ? _buildEditRow('Address', _addressCtrl)
-                      : _ProfileInfoRow(label: 'Address', value: _addressCtrl.text),
-                  _isEditing
-                      ? _buildEditRow('Phone', _phoneCtrl)
-                      : _ProfileInfoRow(label: 'Phone', value: _phoneCtrl.text),
-                  _isEditing
-                      ? _buildEditRow('Email', _emailCtrl)
-                      : _ProfileInfoRow(label: 'Email', value: _emailCtrl.text),
-                  const _ProfileInfoRow(label: 'Role', value: 'Admin'),
+                  _ProfileInfoRow(label: 'Username', value: _usernameCtrl.text),
+                  _ProfileInfoRow(label: 'Address', value: _addressCtrl.text),
+                  _ProfileInfoRow(label: 'Phone', value: _phoneCtrl.text),
+                  _ProfileInfoRow(label: 'Email', value: _emailCtrl.text),
+                  _ProfileInfoRow(
+                    label: 'Role',
+                    value: (_profileUser?.role.trim().isNotEmpty ?? false)
+                        ? _profileUser!.role
+                        : 'Admin',
+                  ),
                 ],
               ),
             ),
@@ -789,33 +828,9 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen>
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
               child: Row(
                 children: [
-                  // Edit / Save profile button
                   Expanded(
                     child: ElevatedButton.icon(
-                      onPressed: () {
-                        setState(() => _isEditing = !_isEditing);
-                      },
-                      icon: Icon(
-                        _isEditing ? Icons.save_outlined : Icons.edit_outlined,
-                        size: 18,
-                      ),
-                      label: Text(_isEditing ? 'Save' : 'Edit'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2563EB),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 13),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        elevation: 0,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  // Logout button
-                  Expanded(
-                    child: ElevatedButton.icon(
-                      onPressed: () {},
+                      onPressed: _logout,
                       icon: const Icon(Icons.logout, size: 18),
                       label: const Text('Logout'),
                       style: ElevatedButton.styleFrom(

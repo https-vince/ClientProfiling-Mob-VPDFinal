@@ -72,11 +72,15 @@ class ApiClient {
 
   Future<Response<dynamic>> get(
     String path, {
+    Map<String, dynamic>? queryParameters,
+    CancelToken? cancelToken,
     bool requiresAuth = false,
   }) {
     return _request(() {
       return _dio.get<dynamic>(
         path,
+        queryParameters: queryParameters,
+        cancelToken: cancelToken,
         options: Options(extra: {'requiresAuth': requiresAuth}),
       );
     });
@@ -110,6 +114,20 @@ class ApiClient {
     });
   }
 
+  Future<Response<dynamic>> delete(
+    String path, {
+    Map<String, dynamic>? data,
+    bool requiresAuth = false,
+  }) {
+    return _request(() {
+      return _dio.delete<dynamic>(
+        path,
+        data: data,
+        options: Options(extra: {'requiresAuth': requiresAuth}),
+      );
+    });
+  }
+
   Future<Response<dynamic>> _request(
     Future<Response<dynamic>> Function() request,
   ) async {
@@ -121,6 +139,13 @@ class ApiClient {
   }
 
   ApiException _mapDioError(DioException e) {
+    if (e.type == DioExceptionType.cancel) {
+      return const ApiException(
+        message: 'Request cancelled.',
+        isCancelled: true,
+      );
+    }
+
     final response = e.response;
     final statusCode = response?.statusCode;
     final data = response?.data;

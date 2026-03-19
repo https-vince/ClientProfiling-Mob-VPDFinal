@@ -1,14 +1,17 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../../../providers/resellers_provider.dart';
 import '../../../../../../shared/widgets/custom_app_bar.dart';
 
-class AddResellerScreen extends StatefulWidget {
+class AddResellerScreen extends ConsumerStatefulWidget {
   const AddResellerScreen({Key? key}) : super(key: key);
 
   @override
-  State<AddResellerScreen> createState() => _AddResellerScreenState();
+  ConsumerState<AddResellerScreen> createState() => _AddResellerScreenState();
 }
 
-class _AddResellerScreenState extends State<AddResellerScreen> {
+class _AddResellerScreenState extends ConsumerState<AddResellerScreen> {
   int _currentStep = 0;
   final _formKey = GlobalKey<FormState>();
 
@@ -42,14 +45,42 @@ class _AddResellerScreenState extends State<AddResellerScreen> {
     super.dispose();
   }
 
+  bool _isLoading = false;
+  String? _errorMessage;
+  bool _success = false;
+
   // Advance step or submit on the last step
-  void _nextStep() {
+  Future<void> _nextStep() async {
     if (!(_formKey.currentState?.validate() ?? false)) return;
     if (_currentStep < 3) {
       setState(() => _currentStep++);
     } else {
-      // TODO: Save reseller data and pass back to resellers screen
-      Navigator.pop(context);
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+        _success = false;
+      });
+      try {
+        final resellerData = {
+          'companyName': _nameController.text.trim(),
+          'address': _addressController.text.trim(),
+          'email': _emailController.text.trim(),
+          'phoneNumber': _phoneController.text.trim(),
+        };
+        // Submit to backend
+        await ref.read(addResellerProvider(resellerData).future);
+        setState(() {
+          _isLoading = false;
+          _success = true;
+        });
+        // Refresh reseller list on parent
+        Navigator.pop(context, true);
+      } catch (e) {
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'Failed to add reseller. Please try again.';
+        });
+      }
     }
   }
 
@@ -204,6 +235,24 @@ class _AddResellerScreenState extends State<AddResellerScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (_isLoading)
+                const Center(child: CircularProgressIndicator()),
+              if (_errorMessage != null)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    _errorMessage!,
+                    style: const TextStyle(color: Color(0xFFEF4444)),
+                  ),
+                ),
+              if (_success)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Text(
+                    'Reseller added successfully!',
+                    style: const TextStyle(color: Color(0xFF2563EB)),
+                  ),
+                ),
               // ── Step content card ──────────────────────────────────
               Expanded(
                 child: SingleChildScrollView(
@@ -308,7 +357,7 @@ class _AddResellerScreenState extends State<AddResellerScreen> {
                   Expanded(
                     flex: 2,
                     child: ElevatedButton(
-                      onPressed: _nextStep,
+                      onPressed: _isLoading ? null : _nextStep,
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF2563EB),
                         foregroundColor: Colors.white,
@@ -320,7 +369,7 @@ class _AddResellerScreenState extends State<AddResellerScreen> {
                         elevation: 0,
                       ),
                       child: Text(
-                        _currentStep == 3 ? 'Add Reseller' : 'Next',
+                        _currentStep == 3 ? (_isLoading ? 'Adding...' : 'Add Reseller') : 'Next',
                         style: const TextStyle(
                             fontSize: 15, fontWeight: FontWeight.w600),
                       ),

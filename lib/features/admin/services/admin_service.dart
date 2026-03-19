@@ -1,4 +1,5 @@
 import '../../../core/network/api_client.dart';
+import '../../../core/network/api_exception.dart';
 
 class AdminScreenData {
   final List<Map<String, String>> admins;
@@ -16,8 +17,14 @@ class AdminService {
   AdminService({ApiClient? apiClient}) : _apiClient = apiClient ?? ApiClient();
 
   Future<AdminScreenData> fetchData() async {
-    final usersFuture = _fetchPaginated('/users');
-    final employeesFuture = _fetchPaginated('/employees');
+    final usersFuture = _fetchPaginatedWithFallback(
+      const ['/users'],
+      allowFailure: false,
+    );
+    final employeesFuture = _fetchPaginatedWithFallback(
+      const ['/employees', '/employee'],
+      allowFailure: true,
+    );
 
     final users = await usersFuture;
     final employees = await employeesFuture;
@@ -52,6 +59,41 @@ class AdminService {
     }).toList();
 
     return AdminScreenData(admins: mappedAdmins, employees: mappedEmployees);
+  }
+
+  Future<List<Map<String, dynamic>>> _fetchPaginatedWithFallback(
+    List<String> paths, {
+    required bool allowFailure,
+  }) async {
+    ApiException? lastApiError;
+    Object? lastError;
+
+    for (final path in paths) {
+      try {
+        return await _fetchPaginated(path);
+      } on ApiException catch (e) {
+        // If an optional endpoint is missing or unstable, keep UI available.
+        if (allowFailure && (e.statusCode == 404 || e.statusCode == 500)) {
+          return const [];
+        }
+        lastApiError = e;
+      } catch (e) {
+        lastError = e;
+      }
+    }
+
+    if (allowFailure) {
+      return const [];
+    }
+
+    if (lastApiError != null) {
+      throw lastApiError;
+    }
+    if (lastError != null) {
+      throw lastError;
+    }
+
+    return const [];
   }
 
   Future<void> createUser({

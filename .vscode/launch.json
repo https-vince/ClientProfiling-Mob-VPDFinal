@@ -1,0 +1,14 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter Android (Real Device - LAN API)",
+      "request": "launch",
+      "type": "dart",
+      "flutterMode": "debug",
+      "args": [
+        "--dart-define=API_BASE_URL=http://192.168.254.93:8000/api"
+      ]
+    }
+  ]
+}

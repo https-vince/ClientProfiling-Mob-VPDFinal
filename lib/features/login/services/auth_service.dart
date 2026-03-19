@@ -67,6 +67,49 @@ class AuthService {
     return AuthUser.fromJson(userJson);
   }
 
+  Future<AuthUser> updateAuthenticatedUser({
+    required String username,
+    required String firstname,
+    required String middlename,
+    required String surname,
+    required String phonenum,
+    required String address,
+    required String email,
+    required String role,
+  }) async {
+    final payload = {
+      'username': username,
+      'firstname': firstname,
+      'middlename': middlename,
+      'surname': surname,
+      'phonenum': phonenum,
+      'address': address,
+      'email': email,
+      'role': role,
+    };
+
+    final response = await _apiClient.patch(
+      ApiConfig.authenticatedUserPath,
+      data: payload,
+      requiresAuth: true,
+    );
+
+    final data = response.data;
+    if (data is Map<String, dynamic>) {
+      final userJson = data['user'];
+      if (userJson is Map<String, dynamic>) {
+        return AuthUser.fromJson(userJson);
+      }
+
+      final rawData = data['data'];
+      if (rawData is Map<String, dynamic>) {
+        return AuthUser.fromJson(rawData);
+      }
+    }
+
+    return getAuthenticatedUser();
+  }
+
   Future<void> logout() async {
     try {
       await _apiClient.post(
