@@ -527,7 +527,7 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
                     MaterialPageRoute(
                       builder: (_) => ServicesEntitiesScreen(
                         service: s,
-                        shopName: client['shop'] ?? '3J\'s Laundry',
+                        shopName: widget.client['shop'] ?? '3J\'s Laundry',
                       ),
                     ),
                   );
