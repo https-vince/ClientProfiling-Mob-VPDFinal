@@ -539,8 +539,8 @@ class _AdminScreenState extends State<AdminScreen> {
               child: Text(admin['name']!,
                   style: const TextStyle(fontSize: 13, color: Colors.black87)),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -570,8 +570,8 @@ class _AdminScreenState extends State<AdminScreen> {
               child: Text(emp['name']!,
                   style: const TextStyle(fontSize: 13, color: Colors.black87)),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
