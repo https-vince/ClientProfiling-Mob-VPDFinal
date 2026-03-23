@@ -234,8 +234,9 @@ class ClientDetailScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const AddButtonsScreen(
+                        builder: (_) => AddButtonsScreen(
                           mode: AddMode.product,
+                          contextData: client,
                         ),
                       ),
                     );
@@ -306,8 +307,9 @@ class ClientDetailScreen extends StatelessWidget {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const AddButtonsScreen(
+                        builder: (_) => AddButtonsScreen(
                           mode: AddMode.service,
+                          contextData: client,
                         ),
                       ),
                     );

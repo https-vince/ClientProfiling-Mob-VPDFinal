@@ -1,8 +1,12 @@
-﻿import 'package:flutter/material.dart';
+﻿import 'dart:async';
+
+import 'package:flutter/material.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../shared/widgets/analytics_card.dart';
 import '../../../shared/widgets/animated_fade_slide.dart';
 import '../../../shared/widgets/app_drawer.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../services/direct_client_service.dart';
 import 'screens/add_client/add_buttons_screen.dart';
 import 'clientshop_details_screen.dart';
 
@@ -14,20 +18,89 @@ class DirectClientScreen extends StatefulWidget {
 }
 
 class _DirectClientScreenState extends State<DirectClientScreen> {
-  final List<Map<String, String>> clients = [
-    {
-      'shop': '3G Laundry Room',
-      'name': 'Andrea Manlapid',
-      'address': '42 Fuchsia St., De Nacia VIII 4, Brgy. Sauyo, Quezon City',
-      'pinLocation': '14.6888665,121.0425025',
-      'googleMaps': 'https://maps.app.goo.gl/tJocTnnonKV4vksj7',
-      'branchType': 'Main Branch',
-      'contactPerson': 'Glenda Valeroso',
-      'contactEmail': 'glendavaleroso25@gmail.com',
-      'contactNo': '0966-135-9282',
-      'viberNo': '0966-135-9282',
-    },
-  ];
+  final DirectClientService _service = DirectClientService();
+  final TextEditingController _searchController = TextEditingController();
+
+  List<Map<String, String>> _clients = const <Map<String, String>>[];
+  bool _isLoading = false;
+  String? _errorMessage;
+  int _currentPage = 1;
+  int _lastPage = 1;
+  int _perPage = 10;
+  int _total = 0;
+  int _requestEpoch = 0;
+  Timer? _searchDebounce;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadClients();
+  }
+
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadClients() async {
+    final requestId = ++_requestEpoch;
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final result = await _service.fetchClientsPage(
+        page: _currentPage,
+        perPage: _perPage,
+        q: _searchController.text,
+      );
+
+      if (!mounted || requestId != _requestEpoch) {
+        return;
+      }
+
+      final rows = (result['data'] as List?)
+              ?.whereType<Map<String, String>>()
+              .toList() ??
+          const <Map<String, String>>[];
+
+      setState(() {
+        _clients = rows;
+        _currentPage = result['current_page'] as int? ?? _currentPage;
+        _perPage = result['per_page'] as int? ?? _perPage;
+        _total = result['total'] as int? ?? 0;
+        _lastPage = result['last_page'] as int? ?? 1;
+      });
+    } on ApiException catch (e) {
+      if (!mounted || requestId != _requestEpoch) {
+        return;
+      }
+      setState(() => _errorMessage = e.message);
+    } catch (_) {
+      if (!mounted || requestId != _requestEpoch) {
+        return;
+      }
+      setState(() => _errorMessage = 'Failed to load clients.');
+    } finally {
+      if (mounted && requestId == _requestEpoch) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _onSearchChanged(String value) {
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 400), () {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _currentPage = 1);
+      _loadClients();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -150,6 +223,16 @@ class _DirectClientScreenState extends State<DirectClientScreen> {
                   ),
                   const SizedBox(height: 16),
 
+                  if (_isLoading) const LinearProgressIndicator(),
+                  if (_errorMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 8),
+                      child: Text(
+                        _errorMessage!,
+                        style: const TextStyle(color: Colors.red),
+                      ),
+                    ),
+
                   // Filter + Search row
                   Row(
                     children: [
@@ -174,6 +257,8 @@ class _DirectClientScreenState extends State<DirectClientScreen> {
                       const SizedBox(width: 12),
                       Expanded(
                         child: TextField(
+                          controller: _searchController,
+                          onChanged: _onSearchChanged,
                           decoration: InputDecoration(
                             hintText: 'Search clients...',
                             hintStyle: TextStyle(
@@ -252,7 +337,7 @@ class _DirectClientScreenState extends State<DirectClientScreen> {
                   ),
 
                   // Data rows
-                  if (clients.isEmpty)
+                  if (_clients.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 28),
                       child: Center(
@@ -277,7 +362,7 @@ class _DirectClientScreenState extends State<DirectClientScreen> {
                       ),
                     )
                   else
-                    ...clients.map((client) => Container(
+                    ..._clients.map((client) => Container(
                       decoration: BoxDecoration(
                         border: Border(
                           bottom: BorderSide(color: Colors.grey[200]!, width: 1),
@@ -351,7 +436,9 @@ class _DirectClientScreenState extends State<DirectClientScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Showing 1 to ${clients.length} of ${clients.length} entries',
+                        _total == 0
+                            ? 'Showing 0 of 0 entries'
+                            : 'Showing ${((_currentPage - 1) * _perPage) + 1} to ${((_currentPage - 1) * _perPage) + _clients.length} of $_total entries',
                         style: const TextStyle(
                           fontSize: 12,
                           color: Colors.grey,
@@ -361,11 +448,21 @@ class _DirectClientScreenState extends State<DirectClientScreen> {
                         children: [
                           _PaginationButton(
                             icon: Icons.keyboard_double_arrow_left,
-                            onPressed: () {},
+                            onPressed: _currentPage > 1
+                                ? () {
+                                    setState(() => _currentPage = 1);
+                                    _loadClients();
+                                  }
+                                : () {},
                           ),
                           _PaginationButton(
                             icon: Icons.chevron_left,
-                            onPressed: () {},
+                            onPressed: _currentPage > 1
+                                ? () {
+                                    setState(() => _currentPage -= 1);
+                                    _loadClients();
+                                  }
+                                : () {},
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -376,8 +473,8 @@ class _DirectClientScreenState extends State<DirectClientScreen> {
                               color: Colors.blue,
                               borderRadius: BorderRadius.circular(4),
                             ),
-                            child: const Text(
-                              '1',
+                            child: Text(
+                              '$_currentPage',
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: 12,
@@ -387,11 +484,21 @@ class _DirectClientScreenState extends State<DirectClientScreen> {
                           ),
                           _PaginationButton(
                             icon: Icons.chevron_right,
-                            onPressed: () {},
+                            onPressed: _currentPage < _lastPage
+                                ? () {
+                                    setState(() => _currentPage += 1);
+                                    _loadClients();
+                                  }
+                                : () {},
                           ),
                           _PaginationButton(
                             icon: Icons.keyboard_double_arrow_right,
-                            onPressed: () {},
+                            onPressed: _currentPage < _lastPage
+                                ? () {
+                                    setState(() => _currentPage = _lastPage);
+                                    _loadClients();
+                                  }
+                                : () {},
                           ),
                         ],
                       ),

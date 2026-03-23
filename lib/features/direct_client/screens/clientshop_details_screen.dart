@@ -230,7 +230,10 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const AddButtonsScreen(mode: AddMode.shop),
+                                builder: (_) => AddButtonsScreen(
+                                  mode: AddMode.shop,
+                                  contextData: client,
+                                ),
                               ),
                             );
                           },

@@ -1,336 +1,390 @@
 import 'package:flutter/material.dart';
+
+import '../../../core/network/api_exception.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../services/direct_client_service.dart';
 
 class EditProductDetailsScreen extends StatefulWidget {
+  const EditProductDetailsScreen({super.key, required this.product});
+
   final Map<String, String> product;
 
-  const EditProductDetailsScreen({Key? key, required this.product})
-      : super(key: key);
-
   @override
-  State<EditProductDetailsScreen> createState() =>
-      _EditProductDetailsScreenState();
+  State<EditProductDetailsScreen> createState() => _EditProductDetailsScreenState();
 }
 
 class _EditProductDetailsScreenState extends State<EditProductDetailsScreen> {
-  late final TextEditingController _modelCodeController;
-  late final TextEditingController _contractDateController;
-  late final TextEditingController _deliveryDateController;
-  late final TextEditingController _installationDateController;
-  late final TextEditingController _purchaseOrderController;
-  late final TextEditingController _deliveryReceiptController;
-  late final TextEditingController _notesController;
+  final DirectClientService _service = DirectClientService();
 
-  String? _supplierType;
-  String? _employeeName;
+  final _modelNameController = TextEditingController();
+  final _uomController = TextEditingController();
+  final _modelCodeController = TextEditingController();
+  final _applianceTypeController = TextEditingController();
+  final _notesController = TextEditingController();
 
-  final List<String> _supplierTypes = ['Bulla Crave', 'Other Supplier'];
-  final List<String> _employeeNames = [
-    'Marion Brix Quiling',
-    'Cecile Aviles',
-    'Other Employee',
-  ];
+  DateTime? _contractDate;
+  DateTime? _deliveryDate;
+  DateTime? _installmentDate;
+
+  String? _employeeId;
+  List<Map<String, String>> _employees = const <Map<String, String>>[];
+
+  bool _isLoading = false;
+  bool _isSaving = false;
+  Map<String, String> _fieldErrors = const <String, String>{};
+
+  String get _productIdText => (widget.product['productId'] ?? '').trim();
+  String get _clientIdText => (widget.product['clientId'] ?? '').trim();
 
   @override
   void initState() {
     super.initState();
-    _modelCodeController =
-        TextEditingController(text: widget.product['modelCode'] ?? '');
-    _contractDateController =
-        TextEditingController(text: widget.product['contractDate'] ?? '');
-    _deliveryDateController =
-        TextEditingController(text: widget.product['deliveryDate'] ?? '');
-    _installationDateController =
-        TextEditingController(text: widget.product['installationDate'] ?? '');
-    _purchaseOrderController =
-        TextEditingController(text: widget.product['poNumber'] ?? '');
-    _deliveryReceiptController =
-        TextEditingController(text: widget.product['drNumber'] ?? '');
-    _notesController = TextEditingController();
-
-    final supplier = widget.product['supplierType'] ?? '';
-    if (_supplierTypes.contains(supplier)) _supplierType = supplier;
-
-    final employee = widget.product['employeeName'] ?? '';
-    if (_employeeNames.contains(employee)) _employeeName = employee;
+    _prefill(widget.product);
+    _load();
   }
 
   @override
   void dispose() {
+    _modelNameController.dispose();
+    _uomController.dispose();
     _modelCodeController.dispose();
-    _contractDateController.dispose();
-    _deliveryDateController.dispose();
-    _installationDateController.dispose();
-    _purchaseOrderController.dispose();
-    _deliveryReceiptController.dispose();
+    _applianceTypeController.dispose();
     _notesController.dispose();
     super.dispose();
   }
 
-  Future<void> _pickDate(TextEditingController controller) async {
-    final now = DateTime.now();
+  Future<void> _load() async {
+    setState(() => _isLoading = true);
+    try {
+      final employeesFuture = _service.fetchEmployees();
+      final id = int.tryParse(_productIdText);
+      final productFuture = id == null
+          ? Future<Map<String, String>>.value(widget.product)
+          : _service.getProductById(id.toString());
+
+      final employees = await employeesFuture;
+      final product = await productFuture;
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _employees = employees;
+      });
+      _prefill(product);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to load product details.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  void _prefill(Map<String, String> product) {
+    _modelNameController.text = (product['modelName'] ?? '').trim();
+    _uomController.text = (product['uom'] ?? '').trim();
+    _modelCodeController.text = (product['modelCode'] ?? '').trim();
+    _applianceTypeController.text = (product['supplierType'] ?? '').trim();
+    _notesController.text = (product['notes'] ?? '').trim();
+
+    _contractDate = _parseDate(product['contractDate']);
+    _deliveryDate = _parseDate(product['deliveryDate']);
+    _installmentDate = _parseDate(product['installationDate']);
+    _employeeId = (product['employeeId'] ?? '').trim().isEmpty
+        ? _employeeId
+        : (product['employeeId'] ?? '').trim();
+
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  DateTime? _parseDate(String? value) {
+    final raw = (value ?? '').trim();
+    if (raw.isEmpty) {
+      return null;
+    }
+
+    final ymd = RegExp(r'^(\d{4})-(\d{2})-(\d{2})$');
+    final mdy = RegExp(r'^(\d{2})/(\d{2})/(\d{4})$');
+
+    if (ymd.hasMatch(raw)) {
+      final m = ymd.firstMatch(raw)!;
+      return DateTime(
+        int.parse(m.group(1)!),
+        int.parse(m.group(2)!),
+        int.parse(m.group(3)!),
+      );
+    }
+
+    if (mdy.hasMatch(raw)) {
+      final m = mdy.firstMatch(raw)!;
+      return DateTime(
+        int.parse(m.group(3)!),
+        int.parse(m.group(1)!),
+        int.parse(m.group(2)!),
+      );
+    }
+
+    return null;
+  }
+
+  String _toApiDate(DateTime? value) {
+    if (value == null) {
+      return '';
+    }
+    final month = value.month.toString().padLeft(2, '0');
+    final day = value.day.toString().padLeft(2, '0');
+    return '${value.year}-$month-$day';
+  }
+
+  Future<void> _save() async {
+    if (_isSaving) {
+      return;
+    }
+
+    setState(() => _fieldErrors = const <String, String>{});
+
+    final productId = int.tryParse(_productIdText);
+    final clientId = int.tryParse(_clientIdText);
+    final employeeId = int.tryParse((_employeeId ?? '').trim());
+
+    if (productId == null) {
+      _showError('Missing product id.');
+      return;
+    }
+    if (clientId == null) {
+      _showError('Missing client id.');
+      return;
+    }
+    if (_modelNameController.text.trim().isEmpty ||
+        _uomController.text.trim().isEmpty ||
+        _modelCodeController.text.trim().isEmpty ||
+        _applianceTypeController.text.trim().isEmpty ||
+        employeeId == null ||
+        _contractDate == null) {
+      _showError('Please complete required fields before saving.');
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      await _service.updateProduct(
+        productId: productId,
+        modelName: _modelNameController.text.trim(),
+        unitsOfMeasurement: _uomController.text.trim(),
+        contractDate: _toApiDate(_contractDate),
+        deliveryDate: _toApiDate(_deliveryDate),
+        installmentDate: _toApiDate(_installmentDate),
+        notes: _notesController.text.trim(),
+        clientId: clientId,
+        modelCode: _modelCodeController.text.trim(),
+        applianceType: _applianceTypeController.text.trim(),
+        employeeId: employeeId,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _fieldErrors = e.fieldErrors);
+      _showError(e.message);
+    } catch (_) {
+      _showError('Failed to update product. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  void _showError(String message) {
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _pickDate(ValueChanged<DateTime> onPicked, DateTime? current) async {
     final picked = await showDatePicker(
       context: context,
-      initialDate: now,
+      initialDate: current ?? DateTime.now(),
       firstDate: DateTime(2000),
       lastDate: DateTime(2100),
     );
     if (picked != null) {
-      controller.text =
-          '${picked.month.toString().padLeft(2, '0')}/${picked.day.toString().padLeft(2, '0')}/${picked.year}';
+      onPicked(picked);
     }
+  }
+
+  String _displayDate(DateTime? value) {
+    if (value == null) {
+      return '';
+    }
+    final month = value.month.toString().padLeft(2, '0');
+    final day = value.day.toString().padLeft(2, '0');
+    return '$month/$day/${value.year}';
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      appBar: CustomAppBar(title: 'Direct Client', showMenuButton: false),
-      body: Column(
-        children: [
-          Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Edit Product Details',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  _buildField('Model Code', _modelCodeController,
-                      hint: 'CWG27MDCRB'),
-                  const SizedBox(height: 14),
-
-                  _buildDateField('Contract Date', _contractDateController),
-                  const SizedBox(height: 14),
-
-                  _buildDateField('Delivery Date', _deliveryDateController),
-                  const SizedBox(height: 14),
-
-                  _buildDateField(
-                      'Installation Date', _installationDateController),
-                  const SizedBox(height: 14),
-
-                  _buildField('Purchase Order', _purchaseOrderController,
-                      hint: 'Enter PO Order'),
-                  const SizedBox(height: 14),
-
-                  _buildField('Delivery Receipt', _deliveryReceiptController,
-                      hint: 'Enter DR Order'),
-                  const SizedBox(height: 14),
-
-                  _buildLabel('Supplier Type'),
-                  const SizedBox(height: 6),
-                  _buildDropdown(
-                    value: _supplierType,
-                    items: _supplierTypes,
-                    hint: 'Select Supplier Type',
-                    onChanged: (v) => setState(() => _supplierType = v),
-                  ),
-                  const SizedBox(height: 14),
-
-                  _buildLabel('Employee Name'),
-                  const SizedBox(height: 6),
-                  _buildDropdown(
-                    value: _employeeName,
-                    items: _employeeNames,
-                    hint: 'Select Employee',
-                    onChanged: (v) => setState(() => _employeeName = v),
-                  ),
-                  const SizedBox(height: 14),
-
-                  _buildField('Notes', _notesController,
-                      hint: '', maxLines: 6),
-                  const SizedBox(height: 24),
-                ],
-              ),
+      appBar: const CustomAppBar(title: 'Direct Client', showMenuButton: false),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Edit Product Details',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
             ),
-          ),
-
-          // Save Changes button pinned at bottom
-          Container(
-            width: double.infinity,
-            color: const Color(0xFFF5F7FA),
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-            child: ElevatedButton(
-              onPressed: () async {
-                final confirmed = await showDialog<bool>(
-                  context: context,
-                  builder: (context) => AlertDialog(
-                    title: const Text('Save Changes'),
-                    content: const Text(
-                        'Are you sure you want to save these changes?'),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, false),
-                        child: const Text('Cancel'),
-                      ),
-                      ElevatedButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFFFC300),
-                          foregroundColor: Colors.black,
-                          elevation: 0,
-                        ),
-                        child: const Text('Confirm'),
-                      ),
-                    ],
-                  ),
-                );
-                if (confirmed == true) {
-                  // TODO: save product data
-                  Navigator.pop(context);
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFFFC300),
-                foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+            const SizedBox(height: 12),
+            if (_isLoading) const LinearProgressIndicator(),
+            const SizedBox(height: 10),
+            _buildField(
+              controller: _modelNameController,
+              label: 'model_name',
+              errorText: _fieldErrors['model_name'],
+            ),
+            _buildField(
+              controller: _uomController,
+              label: 'unitsofmeasurement',
+              errorText: _fieldErrors['unitsofmeasurement'],
+            ),
+            _buildField(
+              controller: _modelCodeController,
+              label: 'model_code',
+              errorText: _fieldErrors['model_code'],
+            ),
+            _buildField(
+              controller: _applianceTypeController,
+              label: 'appliance_type',
+              errorText: _fieldErrors['appliance_type'],
+            ),
+            _buildDateField(
+              label: 'contract_date',
+              value: _contractDate,
+              onTap: () => _pickDate((v) => setState(() => _contractDate = v), _contractDate),
+              errorText: _fieldErrors['contract_date'],
+            ),
+            _buildDateField(
+              label: 'delivery_date',
+              value: _deliveryDate,
+              onTap: () => _pickDate((v) => setState(() => _deliveryDate = v), _deliveryDate),
+              errorText: _fieldErrors['delivery_date'],
+            ),
+            _buildDateField(
+              label: 'installment_date',
+              value: _installmentDate,
+              onTap: () => _pickDate((v) => setState(() => _installmentDate = v), _installmentDate),
+              errorText: _fieldErrors['installment_date'],
+            ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: DropdownButtonFormField<String>(
+                value: _employeeId,
+                decoration: InputDecoration(
+                  labelText: 'employee_id',
+                  errorText: _fieldErrors['employee_id'],
+                  border: const OutlineInputBorder(),
+                  filled: true,
+                  fillColor: Colors.white,
                 ),
-                elevation: 0,
-              ),
-              child: const Text(
-                'Save Changes',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                items: _employees
+                    .map((e) => DropdownMenuItem<String>(
+                          value: e['id'],
+                          child: Text(e['name'] ?? '-'),
+                        ))
+                    .toList(),
+                onChanged: (value) => setState(() => _employeeId = value),
               ),
             ),
-          ),
-        ],
+            _buildField(
+              controller: _notesController,
+              label: 'notes',
+              maxLines: 4,
+              errorText: _fieldErrors['notes'],
+            ),
+            const SizedBox(height: 14),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _isSaving ? null : _save,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFFC300),
+                  foregroundColor: Colors.black,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                ),
+                child: _isSaving
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Save Changes'),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  // ── Helpers ───────────────────────────────────────────────────────────────
-
-  Widget _buildLabel(String text) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        color: Colors.black87,
-      ),
-    );
-  }
-
-  Widget _buildField(
-    String label,
-    TextEditingController controller, {
-    String hint = '',
-    TextInputType keyboardType = TextInputType.text,
+  Widget _buildField({
+    required TextEditingController controller,
+    required String label,
     int maxLines = 1,
+    String? errorText,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildLabel(label),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          keyboardType: keyboardType,
-          maxLines: maxLines,
-          style: const TextStyle(fontSize: 14, color: Colors.black87),
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide:
-                  const BorderSide(color: Color(0xFF2563EB), width: 1.5),
-            ),
-          ),
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: controller,
+        maxLines: maxLines,
+        decoration: InputDecoration(
+          labelText: label,
+          errorText: errorText,
+          border: const OutlineInputBorder(),
+          filled: true,
+          fillColor: Colors.white,
         ),
-      ],
-    );
-  }
-
-  Widget _buildDateField(String label, TextEditingController controller) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildLabel(label),
-        const SizedBox(height: 6),
-        TextField(
-          controller: controller,
-          readOnly: true,
-          style: const TextStyle(fontSize: 14, color: Colors.black87),
-          decoration: InputDecoration(
-            hintText: 'MM/DD/YYYY',
-            hintStyle: TextStyle(color: Colors.grey[400], fontSize: 14),
-            filled: true,
-            fillColor: Colors.white,
-            contentPadding:
-                const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-            suffixIcon: Icon(Icons.calendar_month, color: Colors.grey[600]),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide: BorderSide(color: Colors.grey[300]!),
-            ),
-            focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(8),
-              borderSide:
-                  const BorderSide(color: Color(0xFF2563EB), width: 1.5),
-            ),
-          ),
-          onTap: () => _pickDate(controller),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDropdown({
-    required String? value,
-    required List<String> items,
-    required String hint,
-    required ValueChanged<String?> onChanged,
-  }) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[300]!),
       ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: value,
-          isExpanded: true,
-          hint: Text(hint,
-              style: TextStyle(color: Colors.grey[400], fontSize: 14)),
-          items: items
-              .map((item) => DropdownMenuItem(
-                    value: item,
-                    child: Text(item,
-                        style: const TextStyle(
-                            fontSize: 14, color: Colors.black87)),
-                  ))
-              .toList(),
-          onChanged: onChanged,
+    );
+  }
+
+  Widget _buildDateField({
+    required String label,
+    required DateTime? value,
+    required VoidCallback onTap,
+    String? errorText,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: InkWell(
+        onTap: onTap,
+        child: InputDecorator(
+          decoration: InputDecoration(
+            labelText: label,
+            errorText: errorText,
+            border: const OutlineInputBorder(),
+            filled: true,
+            fillColor: Colors.white,
+          ),
+          child: Text(value == null ? 'Select date' : _displayDate(value)),
         ),
       ),
     );

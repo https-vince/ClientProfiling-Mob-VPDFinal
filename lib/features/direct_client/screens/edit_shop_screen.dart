@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../services/direct_client_service.dart';
 
 class EditShopScreen extends StatefulWidget {
   final Map<String, String> client;
@@ -11,6 +13,8 @@ class EditShopScreen extends StatefulWidget {
 }
 
 class _EditShopScreenState extends State<EditShopScreen> {
+  final DirectClientService _service = DirectClientService();
+
   late final TextEditingController _shopNameController;
   late final TextEditingController _shopAddressController;
   late final TextEditingController _pinCoordinatesController;
@@ -23,6 +27,7 @@ class _EditShopScreenState extends State<EditShopScreen> {
 
   String? _shopType;
   final List<String> _shopTypes = ['Main Branch', 'Sub Branch', 'Kiosk'];
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -169,8 +174,7 @@ class _EditShopScreenState extends State<EditShopScreen> {
                   ),
                 );
                 if (confirmed == true) {
-                  // TODO: save shop data
-                  Navigator.pop(context);
+                  await _saveChanges();
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -280,5 +284,63 @@ class _EditShopScreenState extends State<EditShopScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _saveChanges() async {
+    if (_isSaving) {
+      return;
+    }
+
+    final shopId = int.tryParse((widget.client['shopId'] ?? '').trim());
+    final clientId = int.tryParse((widget.client['clientId'] ?? '').trim());
+
+    if (shopId == null || clientId == null) {
+      _showSnack('Missing shop or client id.');
+      return;
+    }
+
+    final shopTypeId = (_shopType ?? '').trim();
+    if (shopTypeId.isEmpty) {
+      _showSnack('Shop type is required.');
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      await _service.updateShop(
+        shopId: shopId,
+        clientId: clientId,
+        shopName: _shopNameController.text.trim(),
+        shopAddress: _shopAddressController.text.trim(),
+        viberNo: _viberNoController.text.trim(),
+        contactPerson: _contactPersonController.text.trim(),
+        contactNo: _contactNoController.text.trim(),
+        shopTypeId: shopTypeId,
+        contactEmail: _emailController.text.trim(),
+        notes: _notesController.text.trim(),
+        googleMaps: _googleMapsController.text.trim(),
+        pinLocation: _pinCoordinatesController.text.trim(),
+      );
+
+      if (!mounted) {
+        return;
+      }
+      Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      _showSnack(e.message);
+    } catch (_) {
+      _showSnack('Failed to update shop. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  void _showSnack(String message) {
+    if (!mounted) {
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 }

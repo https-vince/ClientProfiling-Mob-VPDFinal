@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../theme/colors.dart';
 import '../../../shared/widgets/custom_text_field.dart';
 import '../../../shared/widgets/animated_fade_slide.dart';
 import '../../reset_password/screens/reset_password_screen.dart';
 import '../../dashboard/screens/dashboard_screen.dart';
 import '../../preloader/widgets/washing_loader.dart';
+import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -17,24 +19,56 @@ class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  final AuthService _authService = AuthService();
   bool _isLoading = false;
 
   Future<void> _handleLogin() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
+    if (!(_formKey.currentState?.validate() ?? false)) {
+      return;
+    }
     setState(() => _isLoading = true);
-    // Simulate network / auth delay — replace with your real auth call here.
-    await Future.delayed(const Duration(seconds: 3));
-    if (!mounted) return;
-    Navigator.of(context).pushReplacement(
-      PageRouteBuilder(
-        pageBuilder: (_, __, ___) => const DashboardScreen(),
-        transitionDuration: const Duration(milliseconds: 450),
-        transitionsBuilder: (_, anim, __, child) => FadeTransition(
-          opacity: CurvedAnimation(parent: anim, curve: Curves.easeIn),
-          child: child,
-        ),
+
+    try {
+      await _authService.login(
+        email: _usernameController.text.trim(),
+        password: _passwordController.text,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.of(context).pushReplacement(
+        PageRouteBuilder(
+          pageBuilder: (_, __, ___) => const DashboardScreen(),
+          transitionDuration: const Duration(milliseconds: 450),
+          transitionsBuilder: (_, anim, __, child) => FadeTransition(
+            opacity: CurvedAnimation(parent: anim, curve: Curves.easeIn),
+            child: child,
+          ),
       ),
-    );
+      );
+    } on ApiException catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      final fieldMessages =
+          e.fieldErrors.values.where((m) => m.trim().isNotEmpty).join('\n');
+      final message = fieldMessages.isNotEmpty ? fieldMessages : e.message;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Login failed. Please try again.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
   }
 
   @override

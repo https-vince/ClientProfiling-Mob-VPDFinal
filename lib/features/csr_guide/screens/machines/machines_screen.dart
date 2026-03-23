@@ -204,9 +204,6 @@ class _MachinesScreenState extends State<MachinesScreen> {
 
   // ── Packages table ──────────────────────────────────────────────────────────
   Widget _buildPackagesTable() {
-    const headerStyle = TextStyle(
-        fontSize: 12, fontWeight: FontWeight.w700, color: Colors.black87);
-
     return Table(
       border: TableBorder.all(color: const Color(0xFFD1D5DB)),
       defaultVerticalAlignment: TableCellVerticalAlignment.top,
