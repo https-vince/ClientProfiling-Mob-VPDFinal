@@ -290,18 +290,9 @@ class _SparePartsScreenState extends State<SparePartsScreen> {
                       final isLast = index == _pageItems.length - 1;
                       return Column(
                         children: [
-                          InkWell(
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      SparePartDetailScreen(item: item),
-                                ),
-                              );
-                            },
-                            child: IntrinsicHeight(
-                              child: Row(
-                                children: [
+                          IntrinsicHeight(
+                            child: Row(
+                              children: [
                                   Expanded(
                                     flex: 5,
                                     child: Padding(
@@ -384,7 +375,6 @@ class _SparePartsScreenState extends State<SparePartsScreen> {
                                     ),
                                   ),
                                 ],
-                              ),
                             ),
                           ),
                           if (!isLast)

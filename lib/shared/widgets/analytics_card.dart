@@ -1,21 +1,25 @@
 ﻿import 'package:flutter/material.dart';
+import 'tap_scale_wrapper.dart';
 
 class AnalyticsCard extends StatelessWidget {
   final String title;
   final String value;
   // kept for API compatibility — no longer used as fill color
   final Color backgroundColor;
+  /// Optional tap callback — when provided, a press-scale animation is applied.
+  final VoidCallback? onTap;
 
   const AnalyticsCard({
     Key? key,
     required this.title,
     required this.value,
     this.backgroundColor = Colors.white,
+    this.onTap,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    final card = Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -46,5 +50,10 @@ class AnalyticsCard extends StatelessWidget {
         ],
       ),
     );
+
+    if (onTap != null) {
+      return TapScaleWrapper(onTap: onTap, child: card);
+    }
+    return card;
   }
 }

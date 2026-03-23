@@ -239,6 +239,25 @@ class _ProductModelScreenState extends State<ProductModelScreen> {
                               ),
                             ),
                           ),
+                          const VerticalDivider(
+                              width: 1, thickness: 1,
+                              color: Color(0xFFCCCCCC)),
+                          const SizedBox(
+                            width: 80,
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(
+                                  vertical: 12, horizontal: 8),
+                              child: Text(
+                                'Actions',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 13,
+                                  color: Colors.black87,
+                                ),
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
@@ -262,18 +281,9 @@ class _ProductModelScreenState extends State<ProductModelScreen> {
                       final isLast = index == _pageItems.length - 1;
                       return Column(
                         children: [
-                          InkWell(
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      ProductModelDetailScreen(item: item),
-                                ),
-                              );
-                            },
-                            child: IntrinsicHeight(
-                              child: Row(
-                                children: [
+                          IntrinsicHeight(
+                            child: Row(
+                              children: [
                                   Expanded(
                                     flex: 5,
                                     child: Padding(
@@ -308,10 +318,55 @@ class _ProductModelScreenState extends State<ProductModelScreen> {
                                       ),
                                     ),
                                   ),
+                                  const VerticalDivider(
+                                      width: 1,
+                                      thickness: 1,
+                                      color: Color(0xFFCCCCCC)),
+                                  SizedBox(
+                                    width: 80,
+                                    child: Center(
+                                      child: OutlinedButton(
+                                        onPressed: () {
+                                          Navigator.of(context).push(
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  ProductModelDetailScreen(
+                                                      item: item),
+                                            ),
+                                          );
+                                        },
+                                        style: OutlinedButton.styleFrom(
+                                          padding: const EdgeInsets.symmetric(
+                                              horizontal: 6, vertical: 4),
+                                          side: const BorderSide(
+                                              color: Color(0xFF2563EB)),
+                                          shape: RoundedRectangleBorder(
+                                              borderRadius:
+                                                  BorderRadius.circular(4)),
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: const [
+                                            Icon(Icons.visibility_outlined,
+                                                size: 13,
+                                                color: Color(0xFF2563EB)),
+                                            SizedBox(width: 3),
+                                            Text('View',
+                                                style: TextStyle(
+                                                    fontSize: 11,
+                                                    color: Color(0xFF2563EB),
+                                                    fontWeight:
+                                                        FontWeight.w600)),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
-                          ),
                           if (!isLast)
                             const Divider(
                                 height: 1,

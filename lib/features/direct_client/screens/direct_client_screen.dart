@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import '../../../shared/widgets/analytics_card.dart';
+import '../../../shared/widgets/animated_fade_slide.dart';
 import '../../../shared/widgets/app_drawer.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import 'screens/add_client/add_buttons_screen.dart';
@@ -19,7 +20,7 @@ class _DirectClientScreenState extends State<DirectClientScreen> {
       'name': 'Andrea Manlapid',
       'address': '42 Fuchsia St., De Nacia VIII 4, Brgy. Sauyo, Quezon City',
       'pinLocation': '14.6888665,121.0425025',
-      'googleMaps': 'https://maps.app.goo.gl/L9eFmISF4gvPXPBv9',
+      'googleMaps': 'https://maps.app.goo.gl/tJocTnnonKV4vksj7',
       'branchType': 'Main Branch',
       'contactPerson': 'Glenda Valeroso',
       'contactEmail': 'glendavaleroso25@gmail.com',
@@ -42,6 +43,12 @@ class _DirectClientScreenState extends State<DirectClientScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Analytics Cards — fade + slide in
+            AnimatedFadeSlide(
+              delay: const Duration(milliseconds: 60),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
             // Analytics Cards Grid
             GridView.count(
               crossAxisCount: 2,
@@ -86,9 +93,14 @@ class _DirectClientScreenState extends State<DirectClientScreen> {
               ),
             ),
             const SizedBox(height: 24),
+                ],
+              ),
+            ),
 
-            // Client List Section
-            Container(
+            // Client List Section — fades in with delay
+            AnimatedFadeSlide(
+              delay: const Duration(milliseconds: 200),
+              child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -387,6 +399,7 @@ class _DirectClientScreenState extends State<DirectClientScreen> {
                   ),
                 ],
               ),
+            ),
             ),
             const SizedBox(height: 20),
           ],

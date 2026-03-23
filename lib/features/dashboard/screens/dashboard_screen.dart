@@ -1,6 +1,7 @@
 ﻿import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../../shared/widgets/analytics_card.dart';
+import '../../../shared/widgets/animated_fade_slide.dart';
 import '../../../shared/widgets/app_drawer.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 
@@ -123,52 +124,61 @@ class _DashboardScreenState extends State<DashboardScreen>
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Welcome Back Section
-            const Text(
-              'Welcome Back',
-              style: TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87,
+            // Welcome Back Section + Analytics Cards — staggered fade-in
+            AnimatedFadeSlide(
+              delay: const Duration(milliseconds: 60),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Welcome Back',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black87,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Analytics Cards Grid
+                  GridView.count(
+                    crossAxisCount: 2,
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    childAspectRatio: 1.5,
+                    children: const [
+                      AnalyticsCard(
+                        title: 'Client',
+                        value: '618',
+                        backgroundColor: Color(0xFFB3E5FC),
+                      ),
+                      AnalyticsCard(
+                        title: 'Sold Product',
+                        value: '5,627',
+                        backgroundColor: Color(0xFFB3E5FC),
+                      ),
+                      AnalyticsCard(
+                        title: 'Total Services',
+                        value: '625',
+                        backgroundColor: Color(0xFFB3E5FC),
+                      ),
+                      AnalyticsCard(
+                        title: 'Shops',
+                        value: '601',
+                        backgroundColor: Color(0xFFB3E5FC),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                ],
               ),
             ),
-            const SizedBox(height: 16),
 
-            // Analytics Cards Grid
-            GridView.count(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 1.5,
-              children: const [
-                AnalyticsCard(
-                  title: 'Client',
-                  value: '618',
-                  backgroundColor: Color(0xFFB3E5FC),
-                ),
-                AnalyticsCard(
-                  title: 'Sold Product',
-                  value: '5,627',
-                  backgroundColor: Color(0xFFB3E5FC),
-                ),
-                AnalyticsCard(
-                  title: 'Total Services',
-                  value: '625',
-                  backgroundColor: Color(0xFFB3E5FC),
-                ),
-                AnalyticsCard(
-                  title: 'Shops',
-                  value: '601',
-                  backgroundColor: Color(0xFFB3E5FC),
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-
-            // Sold Product in 2026 Chart
-            Container(
+            // Sold Product in 2026 Chart — fades in with delay
+            AnimatedFadeSlide(
+              delay: const Duration(milliseconds: 180),
+              child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -322,10 +332,13 @@ class _DashboardScreenState extends State<DashboardScreen>
                 ],
               ),
             ),
+            ),
             const SizedBox(height: 20),
 
-            // Available Services Section
-            Container(
+            // Available Services Section — fades in with delay
+            AnimatedFadeSlide(
+              delay: const Duration(milliseconds: 270),
+              child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -440,8 +453,15 @@ class _DashboardScreenState extends State<DashboardScreen>
                 ],
               ),
             ),
+            ),
             const SizedBox(height: 16),
 
+            // Date Labels + Comparison Chart — fades in last
+            AnimatedFadeSlide(
+              delay: const Duration(milliseconds: 340),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
             // Date Labels
             const Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -576,6 +596,9 @@ class _DashboardScreenState extends State<DashboardScreen>
               ),
             ),
             const SizedBox(height: 20),
+                ],
+              ),
+            ),
           ],
         ),
       ),
@@ -746,21 +769,39 @@ class _DashboardScreenState extends State<DashboardScreen>
                     child: ElevatedButton.icon(
                       onPressed: () async {
                         if (_isEditing) {
-                          final confirmed = await showDialog<bool>(
+                          // Animated dialog: scale + fade in
+                          final confirmed = await showGeneralDialog<bool>(
                             context: context,
-                            builder: (context) => AlertDialog(
+                            barrierDismissible: true,
+                            barrierLabel: 'Dismiss',
+                            barrierColor: Colors.black54,
+                            transitionDuration:
+                                const Duration(milliseconds: 220),
+                            transitionBuilder: (ctx, anim, _, child) =>
+                                FadeTransition(
+                              opacity: CurvedAnimation(
+                                  parent: anim, curve: Curves.easeOut),
+                              child: ScaleTransition(
+                                scale: Tween<double>(begin: 0.88, end: 1.0)
+                                    .animate(CurvedAnimation(
+                                        parent: anim,
+                                        curve: Curves.easeOutCubic)),
+                                child: child,
+                              ),
+                            ),
+                            pageBuilder: (ctx, _, __) => AlertDialog(
                               title: const Text('Save Changes'),
                               content: const Text(
                                   'Are you sure you want to save these changes?'),
                               actions: [
                                 TextButton(
                                   onPressed: () =>
-                                      Navigator.pop(context, false),
+                                      Navigator.pop(ctx, false),
                                   child: const Text('Cancel'),
                                 ),
                                 ElevatedButton(
                                   onPressed: () =>
-                                      Navigator.pop(context, true),
+                                      Navigator.pop(ctx, true),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: const Color(0xFF2563EB),
                                     foregroundColor: Colors.white,

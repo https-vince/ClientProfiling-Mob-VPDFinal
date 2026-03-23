@@ -8,18 +8,27 @@ class ScheduleEvent {
 
   ScheduleEvent({required this.name, required this.type});
 
-  Color get color {
+  ScheduleEvent copyWith({String? name, ScheduleType? type}) {
+    return ScheduleEvent(
+      name: name ?? this.name,
+      type: type ?? this.type,
+    );
+  }
+
+  static Color colorForType(ScheduleType type) {
     switch (type) {
       case ScheduleType.pending:
-        return const Color(0xFF5B9BD5); // Blue
+        return const Color(0xFF5B9BD5);
       case ScheduleType.tentative:
-        return const Color(0xFFFFA500); // Orange
+        return const Color(0xFFFFA500);
       case ScheduleType.final_:
-        return const Color(0xFFE74C3C); // Red
+        return const Color(0xFFE74C3C);
       case ScheduleType.resolved:
-        return const Color(0xFF27AE60); // Green
+        return const Color(0xFF27AE60);
       case ScheduleType.name:
-        return const Color(0xFF95A5A6); // Gray
+        return const Color(0xFF95A5A6);
     }
   }
+
+  Color get color => colorForType(type);
 }

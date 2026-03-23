@@ -1,6 +1,26 @@
 ﻿import 'package:flutter/material.dart';
 import '../../../shared/widgets/app_drawer.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import 'statement_of_purpose/statement_of_purpose_screen.dart';
+import 'guiding_principle/guiding_principles_screen.dart';
+import 'communication_and_customer_engagement/communication_screen.dart';
+import 'service_quality_policy/service_quality_policy_screen.dart';
+import 'complaint_handling_and_resolution_policy/complaint_handling_screen.dart';
+import 'data_privacy_and_confidentiality_policy/data_privacy_policy_screen.dart';
+import 'warranty_and_after_sales_support_policy/warranty_policy_screen.dart';
+import 'ethical_conduct_and_accountability_policy/ethical_conduct_policy_screen.dart';
+import 'feedback_and_continuous_improvement_policy/feedback_improvement_policy_screen.dart';
+import 'delivery_and_installation_policy/delivery_installation_policy_screen.dart';
+import 'refund_replacement_and_return_policy/refund_return_policy_screen.dart';
+import 'customer_satisfaction_and_loyalty/customer_satisfaction_screen.dart';
+import 'policy_awareness_and_reviews/policy_awareness_screen.dart';
+import 'acknowledgment/acknowledgment_screen.dart';
+import 'spare_parts/spare_parts_screen.dart';
+import 'machines/machines_screen.dart';
+import 'accessories/accessories_screen.dart';
+import 'services_select/services_screen.dart';
+import 'product_introduction/product_introduction_screen.dart';
+import 'key_technical_features/key_technical_features_screen.dart';
 
 class CsrGuideScreen extends StatefulWidget {
   const CsrGuideScreen({Key? key}) : super(key: key);
@@ -57,12 +77,7 @@ class _CsrGuideScreenState extends State<CsrGuideScreen> {
       appBar: CustomAppBar(
         title: 'CSR Guide',
         showMenuButton: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.account_circle_outlined, color: Colors.black87),
-            onPressed: () {},
-          ),
-        ],
+        actions: [],
       ),
       drawer: const AppDrawer(currentPage: 'CSR Guide'),
       body: Container(
@@ -138,7 +153,147 @@ class _CsrGuideScreenState extends State<CsrGuideScreen> {
                         (sub) => InkWell(
                           onTap: () {
                             setState(() => _selectedTopic = sub);
-                            // TODO: navigate to content screen when ready
+                            if (sub == 'Statement of Purpose') {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const StatementOfPurposeScreen(),
+                                ),
+                              );
+                            } else if (sub == 'Guiding Principles') {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const GuidingPrinciplesScreen(),
+                                ),
+                              );
+                            } else if (sub == 'Communication and Customer Engagement') {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const CommunicationScreen(),
+                                ),
+                              );
+                            } else if (sub == 'Service Quality Policy') {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const ServiceQualityPolicyScreen(),
+                                ),
+                              );
+                            } else if (sub == 'Complaint Handling and Resolution Policy') {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const ComplaintHandlingScreen(),
+                                ),
+                              );
+                            } else if (sub == 'Data Privacy and Confidentiality Policy') {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const DataPrivacyPolicyScreen(),
+                                ),
+                              );
+                            } else if (sub == 'Warranty and After-Sales Support Policy') {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const WarrantyPolicyScreen(),
+                                ),
+                              );
+                            } else if (sub == 'Ethical Conduct and Accountability Policy') {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const EthicalConductPolicyScreen(),
+                                ),
+                              );
+                            } else if (sub == 'Feedback and Continuous Improvement Policy') {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const FeedbackImprovementPolicyScreen(),
+                                ),
+                              );
+                            } else if (sub == 'Delivery and Installation Policy') {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const DeliveryInstallationPolicyScreen(),
+                                ),
+                              );
+                            } else if (sub == 'Refund, Replacement, and Return Policy') {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const RefundReturnPolicyScreen(),
+                                ),
+                              );
+                            } else if (sub == 'Customer Satisfaction and Loyalty') {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const CustomerSatisfactionScreen(),
+                                ),
+                              );
+                            } else if (sub == 'Policy Awareness and Reviews') {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const PolicyAwarenessScreen(),
+                                ),
+                              );
+                            } else if (sub == 'Acknowledgment') {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const AcknowledgmentScreen(),
+                                ),
+                              );
+                            } else if (sub == 'Spare Parts') {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const SparePartsScreen(),
+                                ),
+                              );
+                            } else if (sub == 'Machines') {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const MachinesScreen(),
+                                ),
+                              );
+                            } else if (sub == 'Accessories') {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const AccessoriesScreen(),
+                                ),
+                              );
+                            } else if (sub == 'Services') {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const ServicesScreen(),
+                                ),
+                              );
+                            } else if (sub == 'Product Introduction') {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const ProductIntroductionScreen(),
+                                ),
+                              );
+                            } else if (sub == 'Key Technical Features and Specifications') {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const KeyTechnicalFeaturesScreen(),
+                                ),
+                              );
+                            }
                           },
                           child: Padding(
                             padding:

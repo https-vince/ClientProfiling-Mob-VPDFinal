@@ -42,7 +42,21 @@ class _AppDrawerState extends State<AppDrawer> {
     Navigator.pop(context);
     Navigator.pushAndRemoveUntil(
       context,
-      MaterialPageRoute(builder: (_) => screen),
+      PageRouteBuilder(
+        pageBuilder: (_, __, ___) => screen,
+        transitionDuration: const Duration(milliseconds: 280),
+        transitionsBuilder: (_, anim, __, child) => FadeTransition(
+          opacity: CurvedAnimation(parent: anim, curve: Curves.easeOut),
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0.03, 0),
+              end: Offset.zero,
+            ).animate(
+                CurvedAnimation(parent: anim, curve: Curves.easeOutCubic)),
+            child: child,
+          ),
+        ),
+      ),
       (route) => false,
     );
   }
@@ -190,7 +204,15 @@ class _AppDrawerState extends State<AppDrawer> {
               onTap: () {
                 Navigator.pushAndRemoveUntil(
                   context,
-                  MaterialPageRoute(builder: (_) => const LoginScreen()),
+                  PageRouteBuilder(
+                    pageBuilder: (_, __, ___) => const LoginScreen(),
+                    transitionDuration: const Duration(milliseconds: 400),
+                    transitionsBuilder: (_, anim, __, child) => FadeTransition(
+                      opacity:
+                          CurvedAnimation(parent: anim, curve: Curves.easeInOut),
+                      child: child,
+                    ),
+                  ),
                   (route) => false,
                 );
               },

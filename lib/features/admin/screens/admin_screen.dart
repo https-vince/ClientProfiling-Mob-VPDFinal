@@ -112,12 +112,7 @@ class _AdminScreenState extends State<AdminScreen> {
       appBar: CustomAppBar(
         title: 'Admin',
         showMenuButton: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.account_circle_outlined, color: Colors.black87),
-            onPressed: () {},
-          ),
-        ],
+        actions: [],
       ),
       drawer: const AppDrawer(currentPage: 'Admin'),
       body: SingleChildScrollView(

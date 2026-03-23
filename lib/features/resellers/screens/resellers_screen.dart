@@ -1,5 +1,6 @@
 ﻿import 'package:flutter/material.dart';
 import '../../../shared/widgets/analytics_card.dart';
+import '../../../shared/widgets/animated_fade_slide.dart';
 import '../../../shared/widgets/app_drawer.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import 'reseller_detail_screen.dart';
@@ -65,12 +66,7 @@ class _ResellersScreenState extends State<ResellersScreen> {
       appBar: CustomAppBar(
         title: 'Resellers',
         showMenuButton: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.notifications_outlined, color: Colors.black87),
-            onPressed: () {},
-          ),
-        ],
+        actions: [],
       ),
       drawer: const AppDrawer(currentPage: 'Resellers'),
       body: SingleChildScrollView(
@@ -78,8 +74,10 @@ class _ResellersScreenState extends State<ResellersScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Analytics Cards Grid
-            GridView.count(
+            // Analytics Cards — fade + slide in
+            AnimatedFadeSlide(
+              delay: const Duration(milliseconds: 60),
+              child: GridView.count(
               crossAxisCount: 2,
               crossAxisSpacing: 12,
               mainAxisSpacing: 12,
@@ -99,10 +97,13 @@ class _ResellersScreenState extends State<ResellersScreen> {
                 ),
               ],
             ),
+            ),
             const SizedBox(height: 24),
 
-            // Resellers List Section
-            Container(
+            // Resellers List Section — fades in with delay
+            AnimatedFadeSlide(
+              delay: const Duration(milliseconds: 200),
+              child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -503,6 +504,7 @@ class _ResellersScreenState extends State<ResellersScreen> {
                   ),
                 ],
               ),
+            ),
             ),
           ],
         ),

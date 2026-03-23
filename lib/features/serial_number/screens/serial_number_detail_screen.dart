@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/serial_number_model.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import 'edit_serial_number_screen.dart';
+import '../../direct_client/screens/productdetailsentities_screen.dart';
 
 class SerialNumberDetailScreen extends StatefulWidget {
   final SerialNumberModel item;
@@ -167,7 +168,23 @@ class _SerialNumberDetailScreenState extends State<SerialNumberDetailScreen> {
                   width: double.infinity,
                   height: 50,
                   child: OutlinedButton(
-                    onPressed: () {},
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ProductDetailsEntitiesScreen(
+                            product: {
+                              'modelCode': _item.productModel,
+                              'supplierType': _item.clientType,
+                              'employeeName': _item.clientName,
+                              'deliveryDate': _item.dateCreated,
+                              'contractDate': _item.dateCreated,
+                              'installationDate': _item.dateCreated,
+                            },
+                          ),
+                        ),
+                      );
+                    },
                     style: OutlinedButton.styleFrom(
                       side: const BorderSide(
                           color: Color(0xFFCCCCCC), width: 1.5),

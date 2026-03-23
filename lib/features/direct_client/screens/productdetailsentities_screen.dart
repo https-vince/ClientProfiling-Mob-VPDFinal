@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../../../features/serial_number/screens/serial_number_detail_screen.dart';
+import '../../../features/serial_number/models/serial_number_model.dart';
 import 'edit_product_details_screen.dart';
 
 class ProductDetailsEntitiesScreen extends StatelessWidget {
@@ -207,11 +209,11 @@ class ProductDetailsEntitiesScreen extends StatelessWidget {
                   _buildTableHeader(),
 
                   // Data rows
-                  ..._serialNumbers.map((sn) => _buildTableRow(sn)),
+                  ..._serialNumbers.map((sn) => _buildTableRow(context, sn)),
 
                   // Empty filler rows to match image appearance
                   for (int i = _serialNumbers.length; i < 4; i++)
-                    _buildTableRow(''),
+                    _buildTableRow(context, ''),
 
                   // Pagination footer
                   _buildPaginationFooter(_serialNumbers.length),
@@ -293,13 +295,33 @@ class ProductDetailsEntitiesScreen extends StatelessWidget {
           horizontal: BorderSide(color: Colors.grey[200]!),
         ),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Expanded(
+          const Expanded(
             child: Padding(
               padding: EdgeInsets.symmetric(vertical: 10, horizontal: 12),
               child: Text(
                 'Serial Number',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
+                ),
+              ),
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 36,
+            color: Colors.grey[200],
+          ),
+          const SizedBox(
+            width: 80,
+            child: Padding(
+              padding: EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+              child: Text(
+                'Actions',
+                textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -313,17 +335,80 @@ class ProductDetailsEntitiesScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTableRow(String serialNumber) {
+  Widget _buildTableRow(BuildContext context, String serialNumber) {
     return Container(
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: Colors.grey[100]!)),
       ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-        child: Text(
-          serialNumber,
-          style: const TextStyle(fontSize: 12, color: Colors.black87),
-        ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+              child: Text(
+                serialNumber,
+                style: const TextStyle(fontSize: 12, color: Colors.black87),
+              ),
+            ),
+          ),
+          Container(
+            width: 1,
+            height: 40,
+            color: Colors.grey[100],
+          ),
+          SizedBox(
+            width: 80,
+            child: Center(
+              child: serialNumber.isEmpty
+                  ? const SizedBox.shrink()
+                  : OutlinedButton(
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => SerialNumberDetailScreen(
+                              item: SerialNumberModel(
+                                id: serialNumber,
+                                clientName:
+                                    product['employeeName'] ?? 'N/A',
+                                clientType:
+                                    product['supplierType'] ?? 'N/A',
+                                dateCreated:
+                                    product['deliveryDate'] ?? 'N/A',
+                                productModel:
+                                    product['modelCode'] ?? 'N/A',
+                                serialCodes: [serialNumber],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 4),
+                        side: const BorderSide(
+                            color: Color(0xFF2563EB)),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(4)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Icon(Icons.visibility_outlined,
+                              size: 13, color: Color(0xFF2563EB)),
+                          SizedBox(width: 3),
+                          Text('View',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF2563EB),
+                                  fontWeight: FontWeight.w600)),
+                        ],
+                      ),
+                    ),
+            ),
+          ),
+        ],
       ),
     );
   }

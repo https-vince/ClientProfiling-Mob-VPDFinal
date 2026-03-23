@@ -2,6 +2,7 @@
 import '../../../shared/widgets/custom_app_bar.dart';
 import 'edit_reseller_screen.dart';
 import 'add_reseller/screens/add_product_screen.dart';
+import 'product_detail_screen.dart';
 
 class ResellerDetailScreen extends StatefulWidget {
   final Map<String, String> reseller;
@@ -18,10 +19,28 @@ class _ResellerDetailScreenState extends State<ResellerDetailScreen> {
   int _currentPage = 1;
   String _searchQuery = '';
 
-  // Product data - will be populated from backend/database
-  final List<Map<String, String>> products = [];
+  // Product data - replace with backend data when ready
+  final List<Map<String, dynamic>> products = [
+    {
+      'modelName': 'TechFlow Laptop Pro',
+      'purchaseOrder': 'PO-2024-001',
+      'modelCode': 'CWG27MDCRB',
+      'supplierType': 'Other',
+      'uom': 'UCM',
+      'quantity': 1,
+      'poNumber': 'PO-2024-001',
+      'drNumber': 'DR-2024-001',
+      'deliveryDate': '2026-03-20',
+      'deliveryAddress': 'Bulla Crave',
+      'logistics': 'N/A',
+      'customerRep': 'Marion Brix Quiling',
+      'serials': ['405KWOWNU717'],
+      'companyName': '',
+    },
 
-  List<Map<String, String>> get filteredProducts {
+  ];
+
+  List<Map<String, dynamic>> get filteredProducts {
     if (_searchQuery.isEmpty) {
       return products;
     }
@@ -31,7 +50,7 @@ class _ResellerDetailScreenState extends State<ResellerDetailScreen> {
     }).toList();
   }
 
-  List<Map<String, String>> get paginatedProducts {
+  List<Map<String, dynamic>> get paginatedProducts {
     final startIndex = (_currentPage - 1) * _entriesPerPage;
     final endIndex = startIndex + _entriesPerPage;
     final filtered = filteredProducts;
@@ -490,25 +509,15 @@ class _ResellerDetailScreenState extends State<ResellerDetailScreen> {
                               width: 72,
                               child: OutlinedButton(
                                 onPressed: () {
-                                  showDialog(
-                                    context: context,
-                                    builder: (_) => AlertDialog(
-                                      title: const Text('Product Detail'),
-                                      content: Column(
-                                        mainAxisSize: MainAxisSize.min,
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text('Model Name: ${product['modelName'] ?? ''}'),
-                                          const SizedBox(height: 8),
-                                          Text('Purchase Order: ${product['purchaseOrder'] ?? ''}'),
-                                        ],
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => ProductDetailScreen(
+                                        product: {
+                                          ...product,
+                                          'companyName': widget.reseller['companyName'] ?? '',
+                                        },
                                       ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () => Navigator.pop(context),
-                                          child: const Text('Close'),
-                                        ),
-                                      ],
                                     ),
                                   );
                                 },

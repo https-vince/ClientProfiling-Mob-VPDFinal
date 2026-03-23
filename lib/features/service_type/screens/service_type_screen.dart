@@ -233,18 +233,9 @@ class _ServiceTypeScreenState extends State<ServiceTypeScreen> {
                       final isLast = index == _pageItems.length - 1;
                       return Column(
                         children: [
-                          InkWell(
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) =>
-                                      ServiceTypeDetailScreen(item: item),
-                                ),
-                              );
-                            },
-                            child: IntrinsicHeight(
-                              child: Row(
-                                children: [
+                          IntrinsicHeight(
+                            child: Row(
+                              children: [
                                   Expanded(
                                     child: Padding(
                                       padding: const EdgeInsets.symmetric(
@@ -308,7 +299,6 @@ class _ServiceTypeScreenState extends State<ServiceTypeScreen> {
                                     ),
                                   ),
                                 ],
-                              ),
                             ),
                           ),
                           if (!isLast)

@@ -1,4 +1,5 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import 'edit_shop_screen.dart';
 import 'productdetailsentities_screen.dart';
@@ -99,7 +100,7 @@ class ClientDetailScreen extends StatelessWidget {
           _divider(),
           _infoRow('Pin Location', client['pinLocation'] ?? '-'),
           _divider(),
-          _infoRow('Google Maps', client['googleMaps'] ?? '-'),
+          _linkInfoRow(context, 'Google Maps', client['googleMaps'] ?? ''),
           _divider(),
           _infoRow('Branch Type', client['branchType'] ?? '-'),
           _divider(),
@@ -381,6 +382,59 @@ class ClientDetailScreen extends StatelessWidget {
   }
 
   Widget _divider() => Divider(height: 1, color: Colors.grey[200]);
+
+  static Future<void> _openUrl(String rawUrl) async {
+    if (rawUrl.isEmpty) return;
+    final uri = Uri.tryParse(rawUrl);
+    if (uri == null || (!uri.scheme.startsWith('http'))) return;
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Widget _linkInfoRow(BuildContext context, String label, String value) {
+    final hasLink = value.isNotEmpty && value.startsWith('http');
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 130,
+            child: Text(
+              label,
+              style: const TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
+            ),
+          ),
+          Expanded(
+            child: GestureDetector(
+              onTap: hasLink
+                  ? () => _openUrl(value)
+                  : null,
+              child: Text(
+                value.isEmpty ? '-' : value,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: hasLink
+                      ? const Color(0xFF2563EB)
+                      : Colors.black87,
+                  decoration: hasLink
+                      ? TextDecoration.underline
+                      : TextDecoration.none,
+                  decorationColor:
+                      hasLink ? const Color(0xFF2563EB) : null,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   Widget _buildSearchField(String hint) {
     return SizedBox(
