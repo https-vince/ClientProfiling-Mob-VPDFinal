@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import '../../../features/serial_number/screens/serial_number_detail_screen.dart';
 import '../../../features/serial_number/models/serial_number_model.dart';
+import '../services/direct_client_service.dart';
 import 'edit_product_details_screen.dart';
 
 class ProductDetailsEntitiesScreen extends StatelessWidget {
@@ -9,12 +11,6 @@ class ProductDetailsEntitiesScreen extends StatelessWidget {
 
   const ProductDetailsEntitiesScreen({Key? key, required this.product})
       : super(key: key);
-
-  // Static demo serial numbers — replace with real data later
-  static const List<String> _serialNumbers = [
-    '502KWAT0L216',
-    '503KWELI350B',
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -81,8 +77,8 @@ class ProductDetailsEntitiesScreen extends StatelessWidget {
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
+                          onPressed: () async {
+                            final updated = await Navigator.push<bool>(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => EditProductDetailsScreen(
@@ -90,6 +86,10 @@ class ProductDetailsEntitiesScreen extends StatelessWidget {
                                 ),
                               ),
                             );
+
+                            if (updated == true && context.mounted) {
+                              Navigator.pop(context, true);
+                            }
                           },
                           icon: const Icon(Icons.edit, size: 18),
                           label: const Text(
@@ -140,8 +140,7 @@ class ProductDetailsEntitiesScreen extends StatelessWidget {
                               ),
                             );
                             if (confirmed == true) {
-                              // TODO: implement delete
-                              Navigator.pop(context);
+                              await _deleteProduct(context);
                             }
                           },
                           icon: const Icon(Icons.delete, size: 18),
@@ -209,14 +208,14 @@ class ProductDetailsEntitiesScreen extends StatelessWidget {
                   _buildTableHeader(),
 
                   // Data rows
-                  ..._serialNumbers.map((sn) => _buildTableRow(context, sn)),
+                  ..._serialNumbersFromProduct().map((sn) => _buildTableRow(context, sn)),
 
                   // Empty filler rows to match image appearance
-                  for (int i = _serialNumbers.length; i < 4; i++)
+                  for (int i = _serialNumbersFromProduct().length; i < 4; i++)
                     _buildTableRow(context, ''),
 
                   // Pagination footer
-                  _buildPaginationFooter(_serialNumbers.length),
+                  _buildPaginationFooter(_serialNumbersFromProduct().length),
                 ],
               ),
             ),
@@ -260,6 +259,49 @@ class ProductDetailsEntitiesScreen extends StatelessWidget {
   }
 
   Widget _divider() => Divider(height: 1, color: Colors.grey[200]);
+
+  List<String> _serialNumbersFromProduct() {
+    final raw = (product['serialNumber'] ?? '').trim();
+    if (raw.isEmpty) {
+      return const <String>[];
+    }
+    return raw
+        .split(',')
+        .map((v) => v.trim())
+        .where((v) => v.isNotEmpty)
+        .toList();
+  }
+
+  Future<void> _deleteProduct(BuildContext context) async {
+    final productId = int.tryParse((product['productId'] ?? '').trim());
+    if (productId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Missing product id.')),
+      );
+      return;
+    }
+
+    final service = DirectClientService();
+    try {
+      await service.deleteProduct(productId);
+      if (!context.mounted) {
+        return;
+      }
+      Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+    } catch (_) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to delete product.')),
+      );
+    }
+  }
 
   Widget _buildSearchField(String hint) {
     return SizedBox(

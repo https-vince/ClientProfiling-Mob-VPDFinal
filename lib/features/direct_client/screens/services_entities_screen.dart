@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../services/direct_client_service.dart';
 import 'update_service_screen.dart';
 
 class ServicesEntitiesScreen extends StatelessWidget {
@@ -11,6 +13,39 @@ class ServicesEntitiesScreen extends StatelessWidget {
     required this.service,
     required this.shopName,
   }) : super(key: key);
+
+  Future<void> _deleteService(BuildContext context) async {
+    final serviceId = int.tryParse((service['serviceId'] ?? '').trim());
+    if (serviceId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Missing service id.')),
+      );
+      return;
+    }
+
+    final serviceApi = DirectClientService();
+    try {
+      await serviceApi.deleteService(serviceId);
+      if (!context.mounted) {
+        return;
+      }
+      Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message)),
+      );
+    } catch (_) {
+      if (!context.mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to delete service.')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -71,8 +106,9 @@ class ServicesEntitiesScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    service['technicians'] ??
-                        'Nurwe Datu Oto, Joejet Bibbigan',
+                    (service['technicians'] ?? '').trim().isEmpty
+                        ? 'N/A'
+                        : service['technicians']!,
                     style: const TextStyle(
                       fontSize: 13,
                       color: Colors.black87,
@@ -136,8 +172,8 @@ class ServicesEntitiesScreen extends StatelessWidget {
                 SizedBox(
                   width: double.infinity,
                   child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.push(
+                    onPressed: () async {
+                      final updated = await Navigator.push<bool>(
                         context,
                         MaterialPageRoute(
                           builder: (_) => UpdateServiceScreen(
@@ -146,6 +182,10 @@ class ServicesEntitiesScreen extends StatelessWidget {
                           ),
                         ),
                       );
+
+                      if (updated == true && context.mounted) {
+                        Navigator.pop(context, true);
+                      }
                     },
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFFFC300),
@@ -196,8 +236,7 @@ class ServicesEntitiesScreen extends StatelessWidget {
                         ),
                       );
                       if (confirmed == true) {
-                        // TODO: implement delete
-                        Navigator.pop(context);
+                        await _deleteService(context);
                       }
                     },
                     style: ElevatedButton.styleFrom(

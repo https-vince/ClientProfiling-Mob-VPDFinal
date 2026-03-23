@@ -28,6 +28,11 @@ class _DirectClientScreenState extends State<DirectClientScreen> {
   int _lastPage = 1;
   int _perPage = 10;
   int _total = 0;
+  int _overallOwner = 0;
+  int _overallCoOwner = 0;
+  int _overallShops = 0;
+  int _soldProducts = 0;
+  int _successfulService = 0;
   int _requestEpoch = 0;
   Timer? _searchDebounce;
 
@@ -52,11 +57,15 @@ class _DirectClientScreenState extends State<DirectClientScreen> {
     });
 
     try {
-      final result = await _service.fetchClientsPage(
+      final resultFuture = _service.fetchClientsPage(
         page: _currentPage,
         perPage: _perPage,
         q: _searchController.text,
       );
+      final summaryFuture = _service.fetchData();
+
+      final result = await resultFuture;
+      final summary = await summaryFuture;
 
       if (!mounted || requestId != _requestEpoch) {
         return;
@@ -73,6 +82,11 @@ class _DirectClientScreenState extends State<DirectClientScreen> {
         _perPage = result['per_page'] as int? ?? _perPage;
         _total = result['total'] as int? ?? 0;
         _lastPage = result['last_page'] as int? ?? 1;
+        _overallOwner = summary.overallOwner;
+        _overallCoOwner = summary.overallCoOwner;
+        _overallShops = summary.overallShops;
+        _soldProducts = summary.soldProducts;
+        _successfulService = summary.successfulService;
       });
     } on ApiException catch (e) {
       if (!mounted || requestId != _requestEpoch) {
@@ -130,39 +144,39 @@ class _DirectClientScreenState extends State<DirectClientScreen> {
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               childAspectRatio: 1.5,
-              children: const [
+              children: [
                 AnalyticsCard(
                   title: 'Owner',
-                  value: '618',
-                  backgroundColor: Color(0xFFB3E5FC),
+                  value: _overallOwner.toString(),
+                  backgroundColor: const Color(0xFFB3E5FC),
                 ),
                 AnalyticsCard(
                   title: 'Co-Owner',
-                  value: '5',
-                  backgroundColor: Color(0xFFB3E5FC),
+                  value: _overallCoOwner.toString(),
+                  backgroundColor: const Color(0xFFB3E5FC),
                 ),
                 AnalyticsCard(
                   title: 'Shops',
-                  value: '681',
-                  backgroundColor: Color(0xFFB3E5FC),
+                  value: _overallShops.toString(),
+                  backgroundColor: const Color(0xFFB3E5FC),
                 ),
                 AnalyticsCard(
                   title: 'Sold Products',
-                  value: '3,527',
-                  backgroundColor: Color(0xFFB3E5FC),
+                  value: _soldProducts.toString(),
+                  backgroundColor: const Color(0xFFB3E5FC),
                 ),
               ],
             ),
             const SizedBox(height: 12),
             
             // Successful Service Card (single, full-width)
-            const SizedBox(
+            SizedBox(
               width: double.infinity,
               height: 90,
               child: AnalyticsCard(
                 title: 'Successful Service',
-                value: '625',
-                backgroundColor: Color(0xFFB3E5FC),
+                value: _successfulService.toString(),
+                backgroundColor: const Color(0xFFB3E5FC),
               ),
             ),
             const SizedBox(height: 24),
@@ -195,8 +209,8 @@ class _DirectClientScreenState extends State<DirectClientScreen> {
                         ),
                       ),
                       ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.push(
+                        onPressed: () async {
+                          final created = await Navigator.push<bool>(
                             context,
                             MaterialPageRoute(
                               builder: (context) => const AddButtonsScreen(
@@ -204,6 +218,10 @@ class _DirectClientScreenState extends State<DirectClientScreen> {
                               ),
                             ),
                           );
+
+                          if (created == true && mounted) {
+                            _loadClients();
+                          }
                         },
                         icon: const Icon(Icons.add, size: 18),
                         label: const Text('Add Client'),
@@ -238,7 +256,11 @@ class _DirectClientScreenState extends State<DirectClientScreen> {
                     children: [
                       OutlinedButton.icon(
                         onPressed: () {
-                          // TODO: Implement filter functionality
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Filter is not available yet.'),
+                            ),
+                          );
                         },
                         icon: const Icon(Icons.filter_list, size: 18),
                         label: const Text('Filter'),

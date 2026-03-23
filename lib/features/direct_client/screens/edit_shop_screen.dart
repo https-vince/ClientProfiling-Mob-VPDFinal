@@ -26,7 +26,7 @@ class _EditShopScreenState extends State<EditShopScreen> {
   late final TextEditingController _notesController;
 
   String? _shopType;
-  final List<String> _shopTypes = ['Main Branch', 'Sub Branch', 'Kiosk'];
+  final List<String> _shopTypes = ['1', '2', '3'];
   bool _isSaving = false;
 
   @override
@@ -102,7 +102,7 @@ class _EditShopScreenState extends State<EditShopScreen> {
                       hint: '42 Fuchsia St., De Nacia VIII 4, Brgy. Sauyo, QC'),
                   const SizedBox(height: 14),
 
-                  _buildLabel('Shop Type'),
+                  _buildLabel('Shop Type ID'),
                   const SizedBox(height: 6),
                   _buildDropdown(),
                   const SizedBox(height: 14),
@@ -269,7 +269,7 @@ class _EditShopScreenState extends State<EditShopScreen> {
           value: _shopType,
           isExpanded: true,
           hint: Text(
-            'Select Shop Type',
+            'Select Shop Type ID',
             style: TextStyle(color: Colors.grey[400], fontSize: 14),
           ),
           items: _shopTypes

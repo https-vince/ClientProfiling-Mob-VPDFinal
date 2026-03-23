@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../services/direct_client_service.dart';
 
 class EditOwnerScreen extends StatefulWidget {
   final Map<String, String> client;
@@ -11,12 +13,14 @@ class EditOwnerScreen extends StatefulWidget {
 }
 
 class _EditOwnerScreenState extends State<EditOwnerScreen> {
+  final DirectClientService _service = DirectClientService();
   late final TextEditingController _firstNameController;
   late final TextEditingController _middleNameController;
   late final TextEditingController _lastNameController;
   late final TextEditingController _emailController;
   late final TextEditingController _phoneController;
   late final TextEditingController _notesController;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -131,8 +135,7 @@ class _EditOwnerScreenState extends State<EditOwnerScreen> {
                   ),
                 );
                 if (confirmed == true) {
-                  // TODO: save logic
-                  Navigator.pop(context);
+                  await _save();
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -206,5 +209,57 @@ class _EditOwnerScreenState extends State<EditOwnerScreen> {
         ),
       ],
     );
+  }
+
+  Future<void> _save() async {
+    if (_isSaving) {
+      return;
+    }
+
+    final clientId = (widget.client['clientId'] ?? '').trim();
+    if (clientId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Missing client id.')),
+      );
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      await _service.updateClient(
+        clientId: clientId,
+        firstName: _firstNameController.text.trim(),
+        middleName: _middleNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        companyName: (widget.client['companyName'] ?? '').trim(),
+        email: _emailController.text.trim(),
+        phone: _phoneController.text.trim(),
+        notes: _notesController.text.trim(),
+      );
+
+      if (!mounted) {
+        return;
+      }
+      Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      final fieldMessages =
+          e.fieldErrors.values.where((m) => m.trim().isNotEmpty).join('\n');
+      final message = fieldMessages.isNotEmpty ? fieldMessages : e.message;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Failed to save owner details.')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
   }
 }

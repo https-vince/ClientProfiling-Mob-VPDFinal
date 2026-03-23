@@ -425,6 +425,53 @@ class DirectClientService {
     await _apiClient.put('/shops/$shopId', data: payload, requiresAuth: true);
   }
 
+  Future<Map<String, String>> fetchShopById(String shopId) async {
+    final parsedId = int.tryParse(shopId.trim());
+    if (parsedId == null) {
+      return const <String, String>{};
+    }
+
+    try {
+      final response = await _apiClient.get('/shops/$parsedId', requiresAuth: true);
+      final payload = response.data;
+
+      Map<String, dynamic>? shop;
+      if (payload is Map<String, dynamic>) {
+        final data = payload['data'];
+        if (data is Map<String, dynamic>) {
+          shop = data;
+        } else {
+          shop = payload;
+        }
+      }
+
+      if (shop == null) {
+        return const <String, String>{};
+      }
+
+      return <String, String>{
+        'shopId': (_firstInt(shop, const ['id', 'shop_id']) ?? parsedId).toString(),
+        'clientId': (_firstInt(shop, const ['client_id']) ?? '').toString(),
+        'shop': _firstString(shop, const ['shopname', 'shop_name', 'name']) ?? '-',
+        'address': _firstString(shop, const ['saddress', 'address']) ?? '-',
+        'pinLocation': _firstString(shop, const ['pin_location']) ?? '-',
+        'googleMaps': _firstString(shop, const ['location_link']) ?? '-',
+        'branchType': _firstString(shop, const ['shop_type_id']) ?? '-',
+        'contactPerson': _firstString(shop, const ['scontactperson']) ?? '-',
+        'contactEmail': _firstString(shop, const ['semailaddress']) ?? '-',
+        'contactNo': _firstString(shop, const ['scontactnum']) ?? '-',
+        'viberNo': _firstString(shop, const ['svibernum']) ?? '-',
+        'notes': _firstString(shop, const ['notes']) ?? '',
+      };
+    } catch (_) {
+      return const <String, String>{};
+    }
+  }
+
+  Future<void> deleteShop(int shopId) async {
+    await _apiClient.delete('/shops/$shopId', requiresAuth: true);
+  }
+
   Future<List<Map<String, String>>> fetchEmployees() async {
     final items = await _safeFetchPaginated('/employees');
 
@@ -534,6 +581,39 @@ class DirectClientService {
     });
 
     await _apiClient.post('/availed-services', data: payload, requiresAuth: true);
+  }
+
+  Future<void> updateService({
+    required int serviceId,
+    required String serviceTypeId,
+    required String serviceDate,
+    required int clientId,
+    int? employeeId,
+    int? shopId,
+    String? notes,
+    String? eventId,
+    String? serialNumberId,
+    String? controlNumber,
+    String? image,
+  }) async {
+    final payload = _withoutEmptyValues({
+      'service_type_id': serviceTypeId,
+      'service_date': serviceDate,
+      'client_id': clientId,
+      'employee_id': employeeId,
+      'shop_id': shopId,
+      'notes': notes,
+      'event_id': int.tryParse((eventId ?? '').trim()),
+      'serial_number_id': (serialNumberId ?? '').trim(),
+      'control_number': controlNumber,
+      'image': image,
+    });
+
+    await _apiClient.put('/availed-services/$serviceId', data: payload, requiresAuth: true);
+  }
+
+  Future<void> deleteService(int serviceId) async {
+    await _apiClient.delete('/availed-services/$serviceId', requiresAuth: true);
   }
 
   Future<void> updateProduct({
@@ -734,6 +814,9 @@ class DirectClientService {
     return <String, String>{
       'clientId': (_firstInt(client, const ['id', 'client_id']) ?? '').toString(),
       'shopId': (_firstInt(client, const ['shop_id', 'shopid']) ?? '').toString(),
+      'firstName': first,
+      'middleName': middle,
+      'lastName': last,
       'name': fullName,
       'contactPerson': fullName,
       'companyName': _firstString(client, const ['ccompanyname', 'company_name']) ?? 'N/A',
