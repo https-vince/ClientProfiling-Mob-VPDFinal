@@ -121,35 +121,40 @@ class _AdminScreenState extends State<AdminScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── Analytics Cards ──────────────────────────────────────────
-            GridView.count(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 1.5,
-              children: const [
-                AnalyticsCard(
-                  title: 'Number of Admins',
-                  value: '11',
-                  backgroundColor: Color(0xFFB3E5FC),
-                ),
-                AnalyticsCard(
-                  title: 'Number of Employee',
-                  value: '34',
-                  backgroundColor: Color(0xFFB3E5FC),
-                ),
-                AnalyticsCard(
-                  title: 'Total Spare Parts',
-                  value: '0',
-                  backgroundColor: Color(0xFFB3E5FC),
-                ),
-                AnalyticsCard(
-                  title: 'Available Spare Parts',
-                  value: '1,257',
-                  backgroundColor: Color(0xFFB3E5FC),
-                ),
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final cols = constraints.maxWidth >= 600 ? 4 : 2;
+                return GridView.count(
+                  crossAxisCount: cols,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  childAspectRatio: 1.5,
+                  children: const [
+                    AnalyticsCard(
+                      title: 'Number of Admins',
+                      value: '11',
+                      backgroundColor: Color(0xFFB3E5FC),
+                    ),
+                    AnalyticsCard(
+                      title: 'Number of Employee',
+                      value: '34',
+                      backgroundColor: Color(0xFFB3E5FC),
+                    ),
+                    AnalyticsCard(
+                      title: 'Total Spare Parts',
+                      value: '0',
+                      backgroundColor: Color(0xFFB3E5FC),
+                    ),
+                    AnalyticsCard(
+                      title: 'Available Spare Parts',
+                      value: '1,257',
+                      backgroundColor: Color(0xFFB3E5FC),
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 24),
 

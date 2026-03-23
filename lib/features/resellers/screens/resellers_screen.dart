@@ -77,26 +77,31 @@ class _ResellersScreenState extends State<ResellersScreen> {
             // Analytics Cards — fade + slide in
             AnimatedFadeSlide(
               delay: const Duration(milliseconds: 60),
-              child: GridView.count(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 1.5,
-              children: const [
-                AnalyticsCard(
-                  title: 'Overall Resellers',
-                  value: '1',
-                  backgroundColor: Color(0xFFB3E5FC),
-                ),
-                AnalyticsCard(
-                  title: 'Sold Products',
-                  value: '3527',
-                  backgroundColor: Color(0xFFB3E5FC),
-                ),
-              ],
-            ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final cols = constraints.maxWidth >= 600 ? 4 : 2;
+                  return GridView.count(
+                  crossAxisCount: cols,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  childAspectRatio: 1.5,
+                  children: const [
+                    AnalyticsCard(
+                      title: 'Overall Resellers',
+                      value: '1',
+                      backgroundColor: Color(0xFFB3E5FC),
+                    ),
+                    AnalyticsCard(
+                      title: 'Sold Products',
+                      value: '3527',
+                      backgroundColor: Color(0xFFB3E5FC),
+                    ),
+                  ],
+                );
+                },
+              ),
             ),
             const SizedBox(height: 24),
 

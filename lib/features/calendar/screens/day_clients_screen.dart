@@ -15,11 +15,17 @@ class DayClientsScreen extends StatefulWidget {
     DateTime toDate,
   )? onReschedule;
 
+  /// Called when the user taps a client card to drag-reschedule it on the
+  /// Calendar screen.  Receives the selected client and the current date.
+  final void Function(ScheduleEvent client, DateTime fromDate)?
+      onClientSelectForDrag;
+
   const DayClientsScreen({
     Key? key,
     required this.date,
     required this.clients,
     this.onReschedule,
+    this.onClientSelectForDrag,
   }) : super(key: key);
 
   @override
@@ -144,16 +150,13 @@ class _DayClientsScreenState extends State<DayClientsScreen> {
                       final color = ScheduleEvent.colorForType(type);
                       final label = _labelForType(type);
                       return GestureDetector(
-                        onTap: () =>
-                            setModalState(() => selectedStatus = type),
+                        onTap: () => setModalState(() => selectedStatus = type),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 150),
                           padding: const EdgeInsets.symmetric(
                               horizontal: 18, vertical: 10),
                           decoration: BoxDecoration(
-                            color: isSelected
-                                ? color
-                                : color.withOpacity(0.08),
+                            color: isSelected ? color : color.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(20),
                             border: Border.all(
                               color: color,
@@ -443,7 +446,11 @@ class _DayClientsScreenState extends State<DayClientsScreen> {
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: () => _showEditModal(context, index),
+                    onTap: () {
+                      // Return to Calendar with this client ready for drag-reschedule
+                      widget.onClientSelectForDrag?.call(client, widget.date);
+                      Navigator.pop(context);
+                    },
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Row(
@@ -490,8 +497,7 @@ class _DayClientsScreenState extends State<DayClientsScreen> {
                                           horizontal: 8, vertical: 3),
                                       decoration: BoxDecoration(
                                         color: client.color.withOpacity(0.1),
-                                        borderRadius:
-                                            BorderRadius.circular(20),
+                                        borderRadius: BorderRadius.circular(20),
                                       ),
                                       child: Text(
                                         label,
@@ -508,8 +514,25 @@ class _DayClientsScreenState extends State<DayClientsScreen> {
                               ],
                             ),
                           ),
-                          Icon(Icons.edit_outlined,
-                              size: 16, color: Colors.grey[400]),
+                          // Edit icon — opens the status/date edit modal
+                          GestureDetector(
+                            onTap: () => _showEditModal(context, index),
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[50],
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: Colors.grey[200]!,
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.edit_outlined,
+                                size: 16,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),

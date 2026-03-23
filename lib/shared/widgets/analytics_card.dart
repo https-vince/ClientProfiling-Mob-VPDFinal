@@ -39,12 +39,16 @@ class AnalyticsCard extends StatelessWidget {
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
           ),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 26,
-              fontWeight: FontWeight.w700,
-              color: Colors.black87,
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              style: const TextStyle(
+                fontSize: 26,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
             ),
           ),
         ],

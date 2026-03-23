@@ -140,35 +140,40 @@ class _DashboardScreenState extends State<DashboardScreen>
                   ),
                   const SizedBox(height: 16),
                   // Analytics Cards Grid
-                  GridView.count(
-                    crossAxisCount: 2,
-                    crossAxisSpacing: 12,
-                    mainAxisSpacing: 12,
-                    shrinkWrap: true,
-                    physics: const NeverScrollableScrollPhysics(),
-                    childAspectRatio: 1.5,
-                    children: const [
-                      AnalyticsCard(
-                        title: 'Client',
-                        value: '618',
-                        backgroundColor: Color(0xFFB3E5FC),
-                      ),
-                      AnalyticsCard(
-                        title: 'Sold Product',
-                        value: '5,627',
-                        backgroundColor: Color(0xFFB3E5FC),
-                      ),
-                      AnalyticsCard(
-                        title: 'Total Services',
-                        value: '625',
-                        backgroundColor: Color(0xFFB3E5FC),
-                      ),
-                      AnalyticsCard(
-                        title: 'Shops',
-                        value: '601',
-                        backgroundColor: Color(0xFFB3E5FC),
-                      ),
-                    ],
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final cols = constraints.maxWidth >= 600 ? 4 : 2;
+                      return GridView.count(
+                        crossAxisCount: cols,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        childAspectRatio: 1.5,
+                        children: const [
+                          AnalyticsCard(
+                            title: 'Client',
+                            value: '618',
+                            backgroundColor: Color(0xFFB3E5FC),
+                          ),
+                          AnalyticsCard(
+                            title: 'Sold Product',
+                            value: '5,627',
+                            backgroundColor: Color(0xFFB3E5FC),
+                          ),
+                          AnalyticsCard(
+                            title: 'Total Services',
+                            value: '625',
+                            backgroundColor: Color(0xFFB3E5FC),
+                          ),
+                          AnalyticsCard(
+                            title: 'Shops',
+                            value: '601',
+                            backgroundColor: Color(0xFFB3E5FC),
+                          ),
+                        ],
+                      );
+                    },
                   ),
                   const SizedBox(height: 20),
                 ],
@@ -196,8 +201,11 @@ class _DashboardScreenState extends State<DashboardScreen>
                     ),
                   ),
                   const SizedBox(height: 20),
-                  SizedBox(
-                    height: 250,
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final chartHeight = (constraints.maxWidth * 0.55).clamp(180.0, 280.0);
+                      return SizedBox(
+                    height: chartHeight,
                     child: BarChart(
                       BarChartData(
                         alignment: BarChartAlignment.spaceAround,
@@ -328,6 +336,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                         ],
                       ),
                     ),
+                  );
+                    },
                   ),
                 ],
               ),

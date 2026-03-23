@@ -1,3 +1,4 @@
+import 'dart:math' show max;
 import 'package:flutter/material.dart';
 import '../../../theme/colors.dart';
 import '../../../shared/widgets/custom_text_field.dart';
@@ -47,6 +48,12 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth  = MediaQuery.of(context).size.width;
+
+    // Responsive values
+    final titleFontSize = (screenWidth * 0.10).clamp(26.0, 44.0);
+    final topPadding    = max(36.0, screenHeight * 0.07);
+    final cardPadding   = screenWidth < 400 ? 20.0 : 28.0;
 
     return Stack(
       children: [
@@ -79,18 +86,18 @@ class _LoginScreenState extends State<LoginScreen> {
                           beginOffset: const Offset(0.0, -0.10),
                           duration: const Duration(milliseconds: 500),
                           child: Column(
-                            children: const [
+                            children: [
                               Padding(
-                                padding: EdgeInsets.only(top: 80, bottom: 4.0),
+                                padding: EdgeInsets.only(top: topPadding, bottom: 4.0),
                                 child: Text(
                                   'Client Profiling',
                                   style: TextStyle(
-                                    fontSize: 40,
+                                    fontSize: titleFontSize,
                                     fontWeight: FontWeight.w800,
                                     fontStyle: FontStyle.italic,
                                     color: Colors.white,
                                     letterSpacing: 0.5,
-                                    shadows: [
+                                    shadows: const [
                                       Shadow(
                                         color: Colors.black54,
                                         blurRadius: 8,
@@ -100,7 +107,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                                 ),
                               ),
-                              Padding(
+                              const Padding(
                                 padding: EdgeInsets.only(bottom: 8.0),
                                 child: Text(
                                   'Manage. Track. Grow.',
@@ -124,9 +131,11 @@ class _LoginScreenState extends State<LoginScreen> {
                             duration: const Duration(milliseconds: 460),
                             child: Center(
                               child: SingleChildScrollView(
-                              child: Container(
+                              child: ConstrainedBox(
+                                constraints: const BoxConstraints(maxWidth: 480),
+                                child: Container(
                                 margin: const EdgeInsets.symmetric(horizontal: 20),
-                                padding: const EdgeInsets.all(32),
+                                padding: EdgeInsets.all(cardPadding),
                                 decoration: BoxDecoration(
                                   color: Colors.white.withOpacity(0.93),
                                   borderRadius: BorderRadius.circular(28),
@@ -277,6 +286,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                           ),
+                        ),
                         ),
                         ),
 

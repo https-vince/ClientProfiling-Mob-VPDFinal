@@ -50,42 +50,46 @@ class _DirectClientScreenState extends State<DirectClientScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
             // Analytics Cards Grid
-            GridView.count(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 1.5,
-              children: const [
-                AnalyticsCard(
-                  title: 'Owner',
-                  value: '618',
-                  backgroundColor: Color(0xFFB3E5FC),
-                ),
-                AnalyticsCard(
-                  title: 'Co-Owner',
-                  value: '5',
-                  backgroundColor: Color(0xFFB3E5FC),
-                ),
-                AnalyticsCard(
-                  title: 'Shops',
-                  value: '681',
-                  backgroundColor: Color(0xFFB3E5FC),
-                ),
-                AnalyticsCard(
-                  title: 'Sold Products',
-                  value: '3,527',
-                  backgroundColor: Color(0xFFB3E5FC),
-                ),
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final cols = constraints.maxWidth >= 600 ? 4 : 2;
+                return GridView.count(
+                  crossAxisCount: cols,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  childAspectRatio: 1.5,
+                  children: const [
+                    AnalyticsCard(
+                      title: 'Owner',
+                      value: '618',
+                      backgroundColor: Color(0xFFB3E5FC),
+                    ),
+                    AnalyticsCard(
+                      title: 'Co-Owner',
+                      value: '5',
+                      backgroundColor: Color(0xFFB3E5FC),
+                    ),
+                    AnalyticsCard(
+                      title: 'Shops',
+                      value: '681',
+                      backgroundColor: Color(0xFFB3E5FC),
+                    ),
+                    AnalyticsCard(
+                      title: 'Sold Products',
+                      value: '3,527',
+                      backgroundColor: Color(0xFFB3E5FC),
+                    ),
+                  ],
+                );
+              },
             ),
             const SizedBox(height: 12),
             
             // Successful Service Card (single, full-width)
             const SizedBox(
               width: double.infinity,
-              height: 90,
               child: AnalyticsCard(
                 title: 'Successful Service',
                 value: '625',
