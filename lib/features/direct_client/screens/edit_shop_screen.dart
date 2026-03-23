@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../services/direct_client_service.dart';
 
 class EditShopScreen extends StatefulWidget {
   final Map<String, String> client;
@@ -11,6 +13,8 @@ class EditShopScreen extends StatefulWidget {
 }
 
 class _EditShopScreenState extends State<EditShopScreen> {
+  final DirectClientService _service = DirectClientService();
+
   late final TextEditingController _shopNameController;
   late final TextEditingController _shopAddressController;
   late final TextEditingController _pinCoordinatesController;
@@ -23,6 +27,7 @@ class _EditShopScreenState extends State<EditShopScreen> {
 
   String? _shopType;
   final List<String> _shopTypes = ['Main Branch', 'Sub Branch', 'Kiosk'];
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -145,6 +150,10 @@ class _EditShopScreenState extends State<EditShopScreen> {
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
             child: ElevatedButton(
               onPressed: () async {
+                if (_isSaving) {
+                  return;
+                }
+
                 final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
@@ -169,8 +178,7 @@ class _EditShopScreenState extends State<EditShopScreen> {
                   ),
                 );
                 if (confirmed == true) {
-                  // TODO: save shop data
-                  Navigator.pop(context);
+                  await _saveShopChanges();
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -279,6 +287,100 @@ class _EditShopScreenState extends State<EditShopScreen> {
           onChanged: (value) => setState(() => _shopType = value),
         ),
       ),
+    );
+  }
+
+  Future<void> _saveShopChanges() async {
+    final shopId = int.tryParse((widget.client['shopId'] ?? '').trim());
+    final clientId = int.tryParse((widget.client['clientId'] ?? '').trim());
+
+    if (shopId == null) {
+      _showMessage('Missing shop id. Please reopen this page from shop details.');
+      return;
+    }
+
+    if (clientId == null) {
+      _showMessage('Missing client id. Please reopen this page from shop details.');
+      return;
+    }
+
+    if (_shopNameController.text.trim().isEmpty ||
+        _shopAddressController.text.trim().isEmpty ||
+        _viberNoController.text.trim().isEmpty ||
+        _contactPersonController.text.trim().isEmpty ||
+        _contactNoController.text.trim().isEmpty ||
+        (_shopType ?? '').trim().isEmpty) {
+      _showMessage('Please complete all required shop fields before saving.');
+      return;
+    }
+
+    setState(() => _isSaving = true);
+
+    try {
+      await _service.updateShop(
+        shopId: shopId,
+        clientId: clientId,
+        shopName: _shopNameController.text.trim(),
+        shopAddress: _shopAddressController.text.trim(),
+        viberNo: _viberNoController.text.trim(),
+        contactPerson: _contactPersonController.text.trim(),
+        contactNo: _contactNoController.text.trim(),
+        shopTypeId: (_shopType ?? '').trim(),
+        contactEmail: _emailController.text.trim(),
+        notes: _notesController.text.trim(),
+        googleMaps: _googleMapsController.text.trim(),
+        pinLocation: _pinCoordinatesController.text.trim(),
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      _showMessage(_apiErrorMessage(e));
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      _showMessage('Failed to update shop. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  String _apiErrorMessage(ApiException e) {
+    if (e.statusCode == 401) {
+      return 'Unauthorized (401). Please log in again.';
+    }
+
+    if (e.statusCode == 404) {
+      return 'Shop not found (404). It may have been deleted.';
+    }
+
+    if (e.statusCode == 422 || e.fieldErrors.isNotEmpty) {
+      final detailedErrors = e.fieldErrors.values
+          .where((message) => message.trim().isNotEmpty)
+          .join('\n');
+      if (detailedErrors.isNotEmpty) {
+        return detailedErrors;
+      }
+      return e.message;
+    }
+
+    return e.message;
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 }

@@ -21,6 +21,15 @@ class ClientDetailScreen extends ConsumerStatefulWidget {
 class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
   int _currentProductPage = 1;
   int _currentServicePage = 1;
+  final TextEditingController _productSearchController = TextEditingController();
+  final TextEditingController _serviceSearchController = TextEditingController();
+
+  @override
+  void dispose() {
+    _productSearchController.dispose();
+    _serviceSearchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -65,22 +74,54 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
           final productsPerPage = 5;
           final servicesPerPage = 5;
 
+          final productQuery = _productSearchController.text.trim().toLowerCase();
+          final serviceQuery = _serviceSearchController.text.trim().toLowerCase();
+
+          final filteredProducts = detail.products.where((p) {
+          if (productQuery.isEmpty) {
+            return true;
+          }
+
+          final modelName = (p['modelName'] ?? '').toLowerCase();
+          final quantity = (p['quantity'] ?? '').toLowerCase();
+          return modelName.contains(productQuery) ||
+            quantity.contains(productQuery);
+          }).toList();
+
+          final filteredServices = detail.services.where((s) {
+          if (serviceQuery.isEmpty) {
+            return true;
+          }
+
+          final reportNo = (s['reportNo'] ?? '').toLowerCase();
+          final serviceType = (s['serviceType'] ?? '').toLowerCase();
+          return reportNo.contains(serviceQuery) ||
+            serviceType.contains(serviceQuery);
+          }).toList();
+
           final productsTotalPages =
-              (detail.products.length / productsPerPage).ceil().clamp(1, 9999);
+            (filteredProducts.length / productsPerPage).ceil().clamp(1, 9999);
           final servicesTotalPages =
-              (detail.services.length / servicesPerPage).ceil().clamp(1, 9999);
+            (filteredServices.length / servicesPerPage).ceil().clamp(1, 9999);
 
-          final productStart = (_currentProductPage - 1) * productsPerPage;
-          final productEnd = (productStart + productsPerPage).clamp(0, detail.products.length);
-          final paginatedProducts = productStart >= detail.products.length
-              ? <Map<String, String>>[]
-              : detail.products.sublist(productStart, productEnd);
+          final currentProductPage =
+            _currentProductPage.clamp(1, productsTotalPages) as int;
+          final currentServicePage =
+            _currentServicePage.clamp(1, servicesTotalPages) as int;
 
-          final serviceStart = (_currentServicePage - 1) * servicesPerPage;
-          final serviceEnd = (serviceStart + servicesPerPage).clamp(0, detail.services.length);
-          final paginatedServices = serviceStart >= detail.services.length
+          final productStart = (currentProductPage - 1) * productsPerPage;
+          final productEnd =
+            (productStart + productsPerPage).clamp(0, filteredProducts.length);
+          final paginatedProducts = productStart >= filteredProducts.length
               ? <Map<String, String>>[]
-              : detail.services.sublist(serviceStart, serviceEnd);
+            : filteredProducts.sublist(productStart, productEnd);
+
+          final serviceStart = (currentServicePage - 1) * servicesPerPage;
+          final serviceEnd =
+            (serviceStart + servicesPerPage).clamp(0, filteredServices.length);
+          final paginatedServices = serviceStart >= filteredServices.length
+              ? <Map<String, String>>[]
+            : filteredServices.sublist(serviceStart, serviceEnd);
 
           return SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -98,14 +139,16 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
                 _buildProductsCard(
                   context,
                   paginatedProducts,
-                  detail.products.length,
-                  _currentProductPage,
+                  filteredProducts.length,
+                  currentProductPage,
                   productsTotalPages,
-                  onPrev: _currentProductPage > 1
-                      ? () => setState(() => _currentProductPage--)
+                  searchController: _productSearchController,
+                  onSearchChanged: (_) => setState(() => _currentProductPage = 1),
+                  onPrev: currentProductPage > 1
+                    ? () => setState(() => _currentProductPage = currentProductPage - 1)
                       : null,
-                  onNext: _currentProductPage < productsTotalPages
-                      ? () => setState(() => _currentProductPage++)
+                  onNext: currentProductPage < productsTotalPages
+                    ? () => setState(() => _currentProductPage = currentProductPage + 1)
                       : null,
                 ),
 
@@ -116,14 +159,16 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
                 _buildServicesCard(
                   context,
                   paginatedServices,
-                  detail.services.length,
-                  _currentServicePage,
+                  filteredServices.length,
+                  currentServicePage,
                   servicesTotalPages,
-                  onPrev: _currentServicePage > 1
-                      ? () => setState(() => _currentServicePage--)
+                  searchController: _serviceSearchController,
+                  onSearchChanged: (_) => setState(() => _currentServicePage = 1),
+                  onPrev: currentServicePage > 1
+                    ? () => setState(() => _currentServicePage = currentServicePage - 1)
                       : null,
-                  onNext: _currentServicePage < servicesTotalPages
-                      ? () => setState(() => _currentServicePage++)
+                  onNext: currentServicePage < servicesTotalPages
+                    ? () => setState(() => _currentServicePage = currentServicePage + 1)
                       : null,
                 ),
 
@@ -185,13 +230,16 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
             children: [
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
+                  onPressed: () async {
+                    final updated = await Navigator.push<bool>(
                       context,
                       MaterialPageRoute(
                         builder: (_) => EditShopScreen(client: client),
                       ),
                     );
+                    if (updated == true) {
+                      ref.invalidate(clientDetailProvider(widget.client));
+                    }
                   },
                   icon: const Icon(Icons.edit, color: Colors.white, size: 18),
                   label: const Text(
@@ -248,17 +296,33 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
     int totalCount,
     int currentPage,
     int totalPages, {
+    required TextEditingController searchController,
+    required ValueChanged<String> onSearchChanged,
     VoidCallback? onPrev,
     VoidCallback? onNext,
   }) {
     return _buildDataCard(
       context,
+      cardKey: const ValueKey('product-data-card'),
       addMode: AddMode.product,
       addLabel: 'Add Product',
-      headers: const ['Model Name', 'Purchase Order'],
+      searchController: searchController,
+      onSearchChanged: onSearchChanged,
+      headers: const ['Model Name', 'Quantity', 'Actions'],
       rows: products
-          .map((p) => [p['modelName'] ?? '-', p['purchaseOrder'] ?? '-'])
+          .map((p) => [p['modelName'] ?? '-', p['quantity'] ?? '-'])
           .toList(),
+      onViewRow: (index) async {
+        final changed = await Navigator.push<bool>(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ProductDetailsEntitiesScreen(product: products[index]),
+          ),
+        );
+        if (changed == true) {
+          ref.invalidate(clientDetailProvider(widget.client));
+        }
+      },
       totalCount: totalCount,
       currentPage: currentPage,
       totalPages: totalPages,
@@ -273,17 +337,33 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
     int totalCount,
     int currentPage,
     int totalPages, {
+    required TextEditingController searchController,
+    required ValueChanged<String> onSearchChanged,
     VoidCallback? onPrev,
     VoidCallback? onNext,
   }) {
     return _buildDataCard(
       context,
+      cardKey: const ValueKey('service-data-card'),
       addMode: AddMode.service,
       addLabel: 'Add Service',
-      headers: const ['Service Order\nReport No.', 'Service Type'],
+      searchController: searchController,
+      onSearchChanged: onSearchChanged,
+      headers: const ['Service Order\nReport No.', 'Service Type', 'Actions'],
       rows: services
           .map((s) => [s['reportNo'] ?? '-', s['serviceType'] ?? '-'])
           .toList(),
+      onViewRow: (index) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => ServicesEntitiesScreen(
+              service: services[index],
+              shopName: widget.client['shop'] ?? '3J\'s Laundry',
+            ),
+          ),
+        );
+      },
       totalCount: totalCount,
       currentPage: currentPage,
       totalPages: totalPages,
@@ -294,10 +374,14 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
 
   Widget _buildDataCard(
     BuildContext context, {
+    required Key cardKey,
     required AddMode addMode,
     required String addLabel,
+    required TextEditingController searchController,
+    required ValueChanged<String> onSearchChanged,
     required List<String> headers,
     required List<List<String>> rows,
+    void Function(int index)? onViewRow,
     required int totalCount,
     required int currentPage,
     required int totalPages,
@@ -305,6 +389,7 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
     VoidCallback? onNext,
   }) {
     return Container(
+      key: cardKey,
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
@@ -323,16 +408,28 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
             padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
             child: Row(
               children: [
-                Expanded(child: _buildSearchField('Search')),
+                Expanded(
+                  child: _buildSearchField(
+                    'Search',
+                    controller: searchController,
+                    onChanged: onSearchChanged,
+                  ),
+                ),
                 const SizedBox(width: 8),
                 ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.push(
+                  onPressed: () async {
+                    final created = await Navigator.push<bool>(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => AddButtonsScreen(mode: addMode),
+                        builder: (_) => AddButtonsScreen(
+                          mode: addMode,
+                          contextData: widget.client,
+                        ),
                       ),
                     );
+                    if (created == true) {
+                      ref.invalidate(clientDetailProvider(widget.client));
+                    }
                   },
                   icon: const Icon(Icons.add, size: 16),
                   label: Text(
@@ -363,7 +460,12 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
               ),
             )
           else
-            ...rows.map(_buildTableRow),
+            ...rows.asMap().entries.map(
+                  (entry) => _buildTableRow(
+                    entry.value,
+                    onView: onViewRow == null ? null : () => onViewRow(entry.key),
+                  ),
+                ),
           _buildPaginationFooter(
             count: totalCount,
             currentPage: currentPage,
@@ -409,10 +511,16 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
 
   Widget _divider() => Divider(height: 1, color: Colors.grey[200]);
 
-  Widget _buildSearchField(String hint) {
+  Widget _buildSearchField(
+    String hint, {
+    required TextEditingController controller,
+    required ValueChanged<String> onChanged,
+  }) {
     return SizedBox(
       height: 36,
       child: TextField(
+        controller: controller,
+        onChanged: onChanged,
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: TextStyle(fontSize: 12, color: Colors.grey[400]),
@@ -604,23 +712,55 @@ class _ClientDetailScreenState extends ConsumerState<ClientDetailScreen> {
     );
   }
 
-  Widget _buildTableRow(List<String> cells) {
+  Widget _buildTableRow(List<String> cells, {VoidCallback? onView}) {
     return Container(
       decoration: BoxDecoration(
         border: Border(bottom: BorderSide(color: Colors.grey[100]!)),
       ),
       child: Row(
-        children: cells.map((cell) {
-          return Expanded(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
-              child: Text(
-                cell,
-                style: const TextStyle(fontSize: 12, color: Colors.black87),
+        children: [
+          ...cells.map((cell) {
+            return Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                child: Text(
+                  cell,
+                  style: const TextStyle(fontSize: 12, color: Colors.black87),
+                ),
+              ),
+            );
+          }),
+          if (onView != null)
+            SizedBox(
+              width: 80,
+              child: Center(
+                child: OutlinedButton(
+                  onPressed: onView,
+                  style: OutlinedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                    side: const BorderSide(color: Color(0xFF2563EB)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: const [
+                      Icon(Icons.visibility_outlined, size: 14, color: Color(0xFF2563EB)),
+                      SizedBox(width: 3),
+                      Text(
+                        'View',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Color(0xFF2563EB),
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               ),
             ),
-          );
-        }).toList(),
+        ],
       ),
     );
   }

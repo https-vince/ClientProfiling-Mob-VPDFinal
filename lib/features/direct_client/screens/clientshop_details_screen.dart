@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../services/direct_client_service.dart';
 import 'clientproduct_detail_screen.dart';
 import 'edit_owner_screen.dart';
 import 'screens/add_client/add_buttons_screen.dart';
@@ -15,6 +16,20 @@ class ClientDetailsScreen extends StatefulWidget {
 
 class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final DirectClientService _service = DirectClientService();
+  late Map<String, String> _client;
+  List<Map<String, String>> _shops = const [];
+
+  bool _isLoadingClient = false;
+  bool _isLoadingShops = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _client = Map<String, String>.from(widget.client);
+    _loadClientDetails();
+    _loadShops();
+  }
 
   @override
   void dispose() {
@@ -24,13 +39,15 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final client = widget.client;
-    final List<Map<String, String>> shops = [
-      {
-        'shop': client['shop'] ?? '-',
-        'contactPerson': client['contactPerson'] ?? '-',
-      },
-    ];
+    final client = _client;
+    final query = _searchController.text.trim().toLowerCase();
+    final shops = _shops.where((shop) {
+      if (query.isEmpty) {
+        return true;
+      }
+      return (shop['shop'] ?? '').toLowerCase().contains(query) ||
+          (shop['contactPerson'] ?? '').toLowerCase().contains(query);
+    }).toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
@@ -59,7 +76,9 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _infoRow('Name:', client['contactPerson'] ?? '-'),
+                  if (_isLoadingClient)
+                    const LinearProgressIndicator(minHeight: 2),
+                  _infoRow('Name:', client['name'] ?? client['contactPerson'] ?? '-'),
                   _divider(),
                   _infoRow('Company Name:', client['companyName'] ?? 'N/A'),
                   _divider(),
@@ -71,13 +90,16 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
+                          onPressed: () async {
+                            final updated = await Navigator.push<bool>(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => EditOwnerScreen(client: client),
                               ),
                             );
+                            if (updated == true) {
+                              await _loadClientDetails();
+                            }
                           },
                           icon: const Icon(Icons.edit, color: Colors.white, size: 18),
                           label: const Text(
@@ -128,8 +150,24 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
                               ),
                             );
                             if (confirmed == true) {
-                              // TODO: delete logic
-                              Navigator.pop(context);
+                              final clientId = (client['clientId'] ?? '').trim();
+                              if (clientId.isEmpty) {
+                                _showMessage('Missing client id. Cannot delete client.');
+                                return;
+                              }
+
+                              try {
+                                await _service.deleteClient(clientId);
+                                if (!mounted) {
+                                  return;
+                                }
+                                Navigator.pop(context, true);
+                              } catch (_) {
+                                if (!mounted) {
+                                  return;
+                                }
+                                _showMessage('Failed to delete client. Please try again.');
+                              }
                             }
                           },
                           icon: const Icon(Icons.delete, color: Colors.white, size: 18),
@@ -226,13 +264,19 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
                         ),
                         const SizedBox(width: 10),
                         ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
+                          onPressed: () async {
+                            final created = await Navigator.push<bool>(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const AddButtonsScreen(mode: AddMode.shop),
+                                builder: (_) => AddButtonsScreen(
+                                  mode: AddMode.shop,
+                                  contextData: client,
+                                ),
                               ),
                             );
+                            if (created == true) {
+                              await _loadShops();
+                            }
                           },
                           icon: const Icon(Icons.add, size: 16),
                           label: const Text('Add Shop'),
@@ -300,7 +344,12 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
                   ),
 
                   // Data rows
-                  if (shops.isEmpty)
+                  if (_isLoadingShops)
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 24),
+                      child: Center(child: CircularProgressIndicator()),
+                    )
+                  else if (shops.isEmpty)
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 28),
                       child: Center(
@@ -351,7 +400,10 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
                                         context,
                                         MaterialPageRoute(
                                           builder: (_) => ClientDetailScreen(
-                                              client: widget.client),
+                                              client: {
+                                                ...client,
+                                                ...shop,
+                                              }),
                                         ),
                                       );
                                     },
@@ -437,6 +489,60 @@ class _ClientDetailsScreenState extends State<ClientDetailsScreen> {
           ],
         ),
       ),
+    );
+  }
+
+  Future<void> _loadClientDetails() async {
+    final clientId = (widget.client['clientId'] ?? '').trim();
+    if (clientId.isEmpty) {
+      return;
+    }
+
+    setState(() => _isLoadingClient = true);
+    try {
+      final fetched = await _service.fetchClientById(clientId);
+      if (fetched.isNotEmpty && mounted) {
+        setState(() {
+          _client = {
+            ...widget.client,
+            ...fetched,
+          };
+        });
+      }
+    } catch (_) {
+      // Keep fallback values from list payload when detail fetch fails.
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingClient = false);
+      }
+    }
+  }
+
+  Future<void> _loadShops() async {
+    final clientId = (_client['clientId'] ?? widget.client['clientId'] ?? '').trim();
+    if (clientId.isEmpty) {
+      return;
+    }
+
+    setState(() => _isLoadingShops = true);
+    try {
+      final shops = await _service.fetchShopsByClientId(clientId);
+      if (!mounted) {
+        return;
+      }
+      setState(() => _shops = shops);
+    } catch (_) {
+      // Keep previous state if fetching shops fails.
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingShops = false);
+      }
+    }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 

@@ -11,3 +11,6 @@ final clientDetailProvider = FutureProvider.autoDispose
     .family<ClientDetailData, Map<String, String>>((ref, client) async {
   return ref.watch(clientDetailServiceProvider).fetchData(client);
 });
+
+  
+

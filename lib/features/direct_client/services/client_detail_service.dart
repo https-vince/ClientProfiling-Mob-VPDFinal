@@ -11,8 +11,10 @@ class ClientDetailService {
     final clientId = _asInt(client['clientId']);
     final shopId = _asInt(client['shopId']);
 
-    // shop-products may or may not support filters server-side.
-    final productsFuture = _tryFetchFiltered(
+    // New product entries are persisted in /products.
+    final productsFuture = _tryFetchPaginated(preferredPath: '/products');
+    // Keep /shop-products for backward compatibility if legacy rows are there.
+    final shopProductsFuture = _tryFetchFiltered(
       preferredPath: '/shop-products',
       clientId: clientId,
       shopId: shopId,
@@ -21,9 +23,15 @@ class ClientDetailService {
     final servicesFuture = _tryFetchPaginated(preferredPath: '/availed-services');
 
     final productsRaw = await productsFuture;
+    final shopProductsRaw = await shopProductsFuture;
     final servicesRaw = await servicesFuture;
 
-    final filteredProducts = productsRaw.where((item) {
+    final allProductItems = <Map<String, dynamic>>[
+      ...productsRaw,
+      ...shopProductsRaw,
+    ];
+
+    final filteredProducts = allProductItems.where((item) {
       return _matchesProductByClientOrShop(
         item,
         clientId: clientId,
@@ -34,6 +42,8 @@ class ClientDetailService {
     final products = filteredProducts.map((item) {
       // Try to get model name from nested product relationship
       final product = item['product'] as Map<String, dynamic>?;
+      final productId = _firstInt(item, const ['id', 'product_id']) ??
+          _firstInt(product, const ['id', 'product_id']);
       final modelName = _firstString(product, const [
             'modelname',
             'model_name',
@@ -48,19 +58,77 @@ class ClientDetailService {
           ]) ??
           '-';
 
-      // Try to get purchase order from various possible locations
-      final purchaseOrder = _firstString(item, const [
-            'purchase_order',
-            'purchase_order_number',
-            'po_number',
-            'purchaseOrder',
-            'po',
+      // Quantity can be sent in either top-level item or nested product object.
+      final quantity = _firstString(item, const [
+            'quantity',
+            'qty',
+            'product_quantity',
+            'item_quantity',
+            'unitsofmeasurement',
+            'units_of_measurement',
           ]) ??
-          'To Follow';
+          _firstString(product, const [
+            'quantity',
+            'qty',
+            'product_quantity',
+            'unitsofmeasurement',
+            'units_of_measurement',
+          ]) ??
+          '-';
+
+          final modelCode = _firstString(product, const ['model_code']) ??
+            _firstString(item, const ['model_code']) ??
+            '-';
+          final uom = _firstString(product, const ['unitsofmeasurement', 'units_of_measurement']) ??
+            _firstString(item, const ['unitsofmeasurement', 'units_of_measurement']) ??
+            '-';
+          final contractDate = _firstString(product, const ['contract_date']) ??
+            _firstString(item, const ['contract_date']) ??
+            '-';
+          final deliveryDate = _firstString(product, const ['delivery_date']) ??
+            _firstString(item, const ['delivery_date']) ??
+            '-';
+          final installationDate = _firstString(product, const ['installment_date', 'installation_date']) ??
+            _firstString(item, const ['installment_date', 'installation_date']) ??
+            '-';
+          final applianceType = _firstString(product, const ['appliance_type']) ??
+            _firstString(item, const ['appliance_type']) ??
+            '-';
+          final employeeName = _firstString(item['employee'] as Map<String, dynamic>?, const [
+            'name',
+            'firstname',
+            ]) ??
+            (_firstInt(product, const ['employee_id']) ?? _firstInt(item, const ['employee_id']))
+              ?.toString() ??
+            '-';
+          final serialNumber = _firstString(item, const ['serial_number']) ??
+            _firstString(product, const ['serial_number']) ??
+            '';
 
       return <String, String>{
+          'productId': productId?.toString() ?? '',
+        'clientId': (_firstInt(item, const ['client_id']) ??
+          _firstInt(product, const ['client_id']) ??
+          clientId)
+            ?.toString() ??
+            '',
         'modelName': modelName,
-        'purchaseOrder': purchaseOrder,
+        'quantity': quantity,
+          'modelCode': modelCode,
+          'uom': uom,
+          'contractDate': contractDate,
+          'deliveryDate': deliveryDate,
+          'installationDate': installationDate,
+          'supplierType': applianceType,
+          'employeeId': (_firstInt(item, const ['employee_id']) ??
+                  _firstInt(product, const ['employee_id']))
+              ?.toString() ??
+              '',
+          'employeeName': employeeName,
+          'serialNumber': serialNumber,
+          'notes': _firstString(item, const ['notes']) ??
+              _firstString(product, const ['notes']) ??
+              '',
       };
     }).toList();
 

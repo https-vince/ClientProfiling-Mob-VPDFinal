@@ -1,21 +1,125 @@
 import 'package:flutter/material.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../services/direct_client_service.dart';
 import 'edit_product_details_screen.dart';
 
-class ProductDetailsEntitiesScreen extends StatelessWidget {
+class ProductDetailsEntitiesScreen extends StatefulWidget {
   final Map<String, String> product;
 
   const ProductDetailsEntitiesScreen({Key? key, required this.product})
       : super(key: key);
 
-  // Static demo serial numbers — replace with real data later
-  static const List<String> _serialNumbers = [
-    '502KWAT0L216',
-    '503KWELI350B',
-  ];
+  @override
+  State<ProductDetailsEntitiesScreen> createState() =>
+      _ProductDetailsEntitiesScreenState();
+}
+
+class _ProductDetailsEntitiesScreenState extends State<ProductDetailsEntitiesScreen> {
+  final DirectClientService _service = DirectClientService();
+  late Map<String, String> _product;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _product = Map<String, String>.from(widget.product);
+    _loadProductDetails();
+  }
+
+  Future<void> _loadProductDetails() async {
+    final productId = (widget.product['productId'] ?? '').trim();
+    if (productId.isEmpty) {
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      final fetched = await _service.getProductById(productId);
+      if (!mounted) {
+        return;
+      }
+
+      if (fetched.isNotEmpty) {
+        setState(() {
+          _product = {
+            ..._product,
+            ...fetched,
+          };
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  List<String> _serialNumbersFromData(Map<String, String> product) {
+    final single = (product['serialNumber'] ?? '').trim();
+    if (single.isEmpty) {
+      return const <String>[];
+    }
+    return <String>[single];
+  }
+
+  Future<void> _deleteProduct() async {
+    final productId = int.tryParse((_product['productId'] ?? '').trim());
+    if (productId == null) {
+      _showMessage('Missing product id. Cannot delete product.');
+      return;
+    }
+
+    try {
+      await _service.deleteProduct(productId);
+      if (!mounted) {
+        return;
+      }
+      Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      _showMessage(_apiErrorMessage(e));
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      _showMessage('Failed to delete product. Please try again.');
+    }
+  }
+
+  String _apiErrorMessage(ApiException e) {
+    if (e.statusCode == 401) {
+      return 'Unauthorized (401). Please log in again.';
+    }
+    if (e.statusCode == 404) {
+      return 'Product not found (404). It may have been deleted.';
+    }
+    if (e.statusCode == 422 || e.fieldErrors.isNotEmpty) {
+      final detailed = e.fieldErrors.values
+          .where((m) => m.trim().isNotEmpty)
+          .join('\n');
+      if (detailed.isNotEmpty) {
+        return detailed;
+      }
+      return e.message;
+    }
+    return e.message;
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    final product = _product;
+    final serialNumbers = _serialNumbersFromData(product);
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
       appBar: CustomAppBar(title: 'Direct Client', showMenuButton: false),
@@ -53,6 +157,8 @@ class ProductDetailsEntitiesScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (_isLoading)
+                    const LinearProgressIndicator(minHeight: 2),
                   _infoRow('Model Code', product['modelCode'] ?? 'CWG27MDCRB'),
                   _divider(),
                   _infoRow('Supplier Type', product['supplierType'] ?? 'Bulla Crave'),
@@ -79,8 +185,8 @@ class ProductDetailsEntitiesScreen extends StatelessWidget {
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: () {
-                            Navigator.push(
+                          onPressed: () async {
+                            final updated = await Navigator.push<bool>(
                               context,
                               MaterialPageRoute(
                                 builder: (_) => EditProductDetailsScreen(
@@ -88,6 +194,9 @@ class ProductDetailsEntitiesScreen extends StatelessWidget {
                                 ),
                               ),
                             );
+                            if (updated == true) {
+                              await _loadProductDetails();
+                            }
                           },
                           icon: const Icon(Icons.edit, size: 18),
                           label: const Text(
@@ -138,8 +247,7 @@ class ProductDetailsEntitiesScreen extends StatelessWidget {
                               ),
                             );
                             if (confirmed == true) {
-                              // TODO: implement delete
-                              Navigator.pop(context);
+                              await _deleteProduct();
                             }
                           },
                           icon: const Icon(Icons.delete, size: 18),
@@ -207,14 +315,14 @@ class ProductDetailsEntitiesScreen extends StatelessWidget {
                   _buildTableHeader(),
 
                   // Data rows
-                  ..._serialNumbers.map((sn) => _buildTableRow(sn)),
+                  ...serialNumbers.map((sn) => _buildTableRow(sn)),
 
                   // Empty filler rows to match image appearance
-                  for (int i = _serialNumbers.length; i < 4; i++)
+                  for (int i = serialNumbers.length; i < 4; i++)
                     _buildTableRow(''),
 
                   // Pagination footer
-                  _buildPaginationFooter(_serialNumbers.length),
+                  _buildPaginationFooter(serialNumbers.length),
                 ],
               ),
             ),

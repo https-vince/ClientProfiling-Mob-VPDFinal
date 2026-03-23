@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../../core/network/api_exception.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
+import '../services/direct_client_service.dart';
 
 class EditOwnerScreen extends StatefulWidget {
   final Map<String, String> client;
@@ -11,17 +13,22 @@ class EditOwnerScreen extends StatefulWidget {
 }
 
 class _EditOwnerScreenState extends State<EditOwnerScreen> {
+  final DirectClientService _service = DirectClientService();
+
   late final TextEditingController _firstNameController;
   late final TextEditingController _middleNameController;
   late final TextEditingController _lastNameController;
+  late final TextEditingController _companyNameController;
   late final TextEditingController _emailController;
   late final TextEditingController _phoneController;
   late final TextEditingController _notesController;
 
+  bool _isSaving = false;
+
   @override
   void initState() {
     super.initState();
-    final name = widget.client['contactPerson'] ?? '';
+    final name = widget.client['name'] ?? widget.client['contactPerson'] ?? '';
     final parts = name.trim().split(' ');
     final firstName = parts.isNotEmpty ? parts.first : '';
     final lastName = parts.length > 1 ? parts.last : '';
@@ -29,6 +36,8 @@ class _EditOwnerScreenState extends State<EditOwnerScreen> {
     _firstNameController = TextEditingController(text: firstName);
     _middleNameController = TextEditingController();
     _lastNameController = TextEditingController(text: lastName);
+    _companyNameController =
+      TextEditingController(text: widget.client['companyName'] ?? '');
     _emailController =
         TextEditingController(text: widget.client['contactEmail'] ?? '');
     _phoneController =
@@ -41,6 +50,7 @@ class _EditOwnerScreenState extends State<EditOwnerScreen> {
     _firstNameController.dispose();
     _middleNameController.dispose();
     _lastNameController.dispose();
+    _companyNameController.dispose();
     _emailController.dispose();
     _phoneController.dispose();
     _notesController.dispose();
@@ -82,6 +92,10 @@ class _EditOwnerScreenState extends State<EditOwnerScreen> {
                       hint: 'Valeroso'),
                   const SizedBox(height: 16),
 
+                    _buildField('Company Name', _companyNameController,
+                      hint: 'Company Name'),
+                    const SizedBox(height: 16),
+
                   _buildField('Email Address', _emailController,
                       hint: 'glendavaleroso25@gmail.com',
                       keyboardType: TextInputType.emailAddress),
@@ -107,6 +121,10 @@ class _EditOwnerScreenState extends State<EditOwnerScreen> {
             padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
             child: ElevatedButton(
               onPressed: () async {
+                if (_isSaving) {
+                  return;
+                }
+
                 final confirmed = await showDialog<bool>(
                   context: context,
                   builder: (context) => AlertDialog(
@@ -131,8 +149,7 @@ class _EditOwnerScreenState extends State<EditOwnerScreen> {
                   ),
                 );
                 if (confirmed == true) {
-                  // TODO: save logic
-                  Navigator.pop(context);
+                  await _saveChanges();
                 }
               },
               style: ElevatedButton.styleFrom(
@@ -155,6 +172,54 @@ class _EditOwnerScreenState extends State<EditOwnerScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _saveChanges() async {
+    final clientId = (widget.client['clientId'] ?? '').trim();
+    if (clientId.isEmpty) {
+      _showMessage('Missing client id. Cannot save changes.');
+      return;
+    }
+
+    setState(() => _isSaving = true);
+    try {
+      await _service.updateClient(
+        clientId: clientId,
+        firstName: _firstNameController.text.trim(),
+        middleName: _middleNameController.text.trim(),
+        lastName: _lastNameController.text.trim(),
+        companyName: _companyNameController.text.trim(),
+        email: _emailController.text.trim(),
+        phone: _phoneController.text.trim(),
+        notes: _notesController.text.trim(),
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      Navigator.pop(context, true);
+    } on ApiException catch (e) {
+      if (!mounted) {
+        return;
+      }
+      _showMessage(e.message);
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      _showMessage('Failed to save changes. Please try again.');
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
+    }
+  }
+
+  void _showMessage(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message)),
     );
   }
 
