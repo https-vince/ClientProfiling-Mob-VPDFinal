@@ -754,7 +754,7 @@ class _PageBtn extends StatelessWidget {
         child: Icon(
           icon,
           size: 22,
-          color: enabled ? Colors.grey[700] : Colors.grey[300],
+          color: Colors.grey[700],
         ),
       ),
     );

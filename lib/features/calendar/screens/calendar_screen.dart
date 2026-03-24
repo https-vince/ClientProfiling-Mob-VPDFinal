@@ -3,6 +3,7 @@ import '../../../shared/widgets/app_drawer.dart';
 import '../../../shared/widgets/custom_app_bar.dart';
 import 'package:intl/intl.dart';
 import '../models/schedule_event.dart';
+import 'add_schedule_dialog.dart';
 import 'day_clients_screen.dart';
 
 class CalendarScreen extends StatefulWidget {
@@ -399,44 +400,35 @@ class _CalendarScreenState extends State<CalendarScreen>
                           ),
                         ),
                         child: isMobile
-                            ? Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                            ? Row(
                                 children: [
-                                  Row(
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.all(8),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF87CEEB)
-                                              .withOpacity(0.2),
-                                          borderRadius:
-                                              BorderRadius.circular(10),
-                                        ),
-                                        child: const Icon(
-                                          Icons.calendar_month,
-                                          color: Color(0xFF87CEEB),
-                                          size: 20,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 10),
-                                      Expanded(
-                                        child: Text(
-                                          monthName,
-                                          style: TextStyle(
-                                            fontSize: isNarrow ? 16 : 18,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.black87,
-                                            letterSpacing: 0.3,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                                  Container(
+                                    padding: const EdgeInsets.all(8),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF87CEEB)
+                                          .withOpacity(0.2),
+                                      borderRadius:
+                                          BorderRadius.circular(10),
+                                    ),
+                                    child: const Icon(
+                                      Icons.calendar_month,
+                                      color: Color(0xFF87CEEB),
+                                      size: 20,
+                                    ),
                                   ),
-                                  const SizedBox(height: 10),
-                                  Align(
-                                    alignment: Alignment.centerRight,
-                                    child: _buildMonthNavButtons(),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      monthName,
+                                      style: TextStyle(
+                                        fontSize: isNarrow ? 16 : 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.black87,
+                                        letterSpacing: 0.3,
+                                      ),
+                                    ),
                                   ),
+                                  _buildMonthNavButtons(),
                                 ],
                               )
                             : Row(
@@ -849,22 +841,46 @@ class _CalendarScreenState extends State<CalendarScreen>
           else
             ..._buildPreviewEventList(dayEvents),
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton.icon(
-              onPressed: _navigateToDayClients,
-              icon: const Icon(Icons.people_outline, size: 18),
-              label: const Text('View All Clients'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF2563EB),
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+          Row(
+            children: [
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: () => showAddScheduleDialog(context),
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Schedule'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                    textStyle: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
                 ),
-                elevation: 0,
               ),
-            ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _navigateToDayClients,
+                  icon: const Icon(Icons.people_outline, size: 18),
+                  label: const Text('View All Clients'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -1267,6 +1283,29 @@ class _CalendarScreenState extends State<CalendarScreen>
             color: client.color.withOpacity(0.6),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildScheduleButton({bool compact = false}) {
+    return ElevatedButton.icon(
+      onPressed: () => showAddScheduleDialog(context),
+      icon: const Icon(Icons.add, size: 16),
+      label: const Text(
+        'Schedule',
+        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+      ),
+      style: ElevatedButton.styleFrom(
+        backgroundColor: const Color(0xFF2563EB),
+        foregroundColor: Colors.white,
+        padding: EdgeInsets.symmetric(
+          horizontal: compact ? 12 : 16,
+          vertical: 10,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10),
+        ),
+        elevation: 0,
       ),
     );
   }

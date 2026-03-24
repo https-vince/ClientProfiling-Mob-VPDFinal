@@ -69,8 +69,12 @@ class _ResellersScreenState extends State<ResellersScreen> {
         actions: [],
       ),
       drawer: const AppDrawer(currentPage: 'Resellers'),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isNarrow = constraints.maxWidth < 380;
+          final hPad = isNarrow ? 10.0 : 14.0;
+          return SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(hPad, 14, hPad, 16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -86,12 +90,12 @@ class _ResellersScreenState extends State<ResellersScreen> {
                   mainAxisSpacing: 12,
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
-                  childAspectRatio: 1.5,
+                  childAspectRatio: constraints.maxWidth < 380 ? 1.7 : 1.5,
                   children: const [
                     AnalyticsCard(
                       title: 'Overall Resellers',
                       value: '1',
-                      backgroundColor: Color(0xFFB3E5FC),
+                      backgroundColor: Color(0xFFB3E5FC), 
                     ),
                     AnalyticsCard(
                       title: 'Sold Products',
@@ -103,13 +107,13 @@ class _ResellersScreenState extends State<ResellersScreen> {
                 },
               ),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 14),
 
             // Resellers List Section — fades in with delay
             AnimatedFadeSlide(
               delay: const Duration(milliseconds: 200),
               child: Container(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(constraints.maxWidth < 380 ? 12 : 14),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
@@ -171,10 +175,74 @@ class _ResellersScreenState extends State<ResellersScreen> {
                   const SizedBox(height: 16),
 
                   // Controls Row - Entries dropdown and Search
-                  Row(
+                  constraints.maxWidth < 400
+                      ? Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8),
+                                  decoration: BoxDecoration(
+                                    border: Border.all(color: Colors.grey[300]!),
+                                    borderRadius: BorderRadius.circular(6),
+                                  ),
+                                  child: DropdownButton<int>(
+                                    value: _entriesPerPage,
+                                    underline: const SizedBox(),
+                                    isDense: true,
+                                    style: const TextStyle(fontSize: 12, color: Colors.black87),
+                                    items: [5, 10, 25, 50].map((int value) {
+                                      return DropdownMenuItem<int>(
+                                        value: value,
+                                        child: Text(value.toString()),
+                                      );
+                                    }).toList(),
+                                    onChanged: (value) {
+                                      setState(() {
+                                        _entriesPerPage = value!;
+                                        _currentPage = 1;
+                                      });
+                                    },
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'entries per page',
+                                  style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 8),
+                            TextField(
+                              controller: _searchController,
+                              onChanged: (value) {
+                                setState(() { _searchQuery = value; _currentPage = 1; });
+                              },
+                              decoration: InputDecoration(
+                                hintText: 'Search:',
+                                hintStyle: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                                isDense: true,
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                  borderSide: BorderSide(color: Colors.grey[300]!),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                  borderSide: BorderSide(color: Colors.grey[300]!),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(6),
+                                  borderSide: const BorderSide(color: Color(0xFF2563EB)),
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      // Entries per page
                       Row(
                         children: [
                           Container(
@@ -186,6 +254,8 @@ class _ResellersScreenState extends State<ResellersScreen> {
                             child: DropdownButton<int>(
                               value: _entriesPerPage,
                               underline: const SizedBox(),
+                              isDense: true,
+                              style: const TextStyle(fontSize: 12, color: Colors.black87),
                               items: [5, 10, 25, 50].map((int value) {
                                 return DropdownMenuItem<int>(
                                   value: value,
@@ -200,21 +270,16 @@ class _ResellersScreenState extends State<ResellersScreen> {
                               },
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
                           Text(
                             'entries per page',
-                            style: TextStyle(
-                              fontSize: 13,
-                              color: Colors.grey[600],
-                            ),
+                            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
                           ),
                         ],
                       ),
-
-                      // Search field
                       Expanded(
                         child: Container(
-                          margin: const EdgeInsets.only(left: 16),
+                          margin: const EdgeInsets.only(left: 12),
                           child: TextField(
                             controller: _searchController,
                             onChanged: (value) {
@@ -225,14 +290,9 @@ class _ResellersScreenState extends State<ResellersScreen> {
                             },
                             decoration: InputDecoration(
                               hintText: 'Search:',
-                              hintStyle: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[400],
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 8,
-                              ),
+                              hintStyle: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                              isDense: true,
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(6),
                                 borderSide: BorderSide(color: Colors.grey[300]!),
@@ -256,8 +316,8 @@ class _ResellersScreenState extends State<ResellersScreen> {
                   // Table Header
                   Container(
                     padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 12,
+                      horizontal: 10,
+                      vertical: 9,
                     ),
                     decoration: BoxDecoration(
                       color: Colors.grey[50],
@@ -335,8 +395,8 @@ class _ResellersScreenState extends State<ResellersScreen> {
                     ...paginatedResellers.map((reseller) {
                       return Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 16,
+                          horizontal: 10,
+                          vertical: 10,
                         ),
                         decoration: BoxDecoration(
                           border: Border(
@@ -434,48 +494,35 @@ class _ResellersScreenState extends State<ResellersScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Showing ${filteredResellers.isEmpty ? 0 : ((_currentPage - 1) * _entriesPerPage) + 1} to ${((_currentPage - 1) * _entriesPerPage) + paginatedResellers.length} of ${filteredResellers.length} ${filteredResellers.length == 1 ? 'entry' : 'entries'}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[600],
+                      Flexible(
+                        child: Text(
+                          'Showing '
+                          '${filteredResellers.isEmpty ? 0 : ((_currentPage - 1) * _entriesPerPage) + 1}'
+                          ' to '
+                          '${((_currentPage - 1) * _entriesPerPage) + paginatedResellers.length}'
+                          ' of ${filteredResellers.length} '
+                          '${filteredResellers.length == 1 ? 'entry' : 'entries'}',
+                          style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
+                      const SizedBox(width: 8),
                       Row(
+                        mainAxisSize: MainAxisSize.min,
                         children: [
-                          IconButton(
-                            onPressed: _currentPage > 1
-                                ? () {
-                                    setState(() {
-                                      _currentPage = 1;
-                                    });
-                                  }
-                                : null,
-                            icon: const Icon(Icons.first_page),
-                            iconSize: 20,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
+                          _paginationIcon(
+                            icon: Icons.first_page,
+                            enabled: _currentPage > 1,
+                            onTap: () => setState(() => _currentPage = 1),
                           ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            onPressed: _currentPage > 1
-                                ? () {
-                                    setState(() {
-                                      _currentPage--;
-                                    });
-                                  }
-                                : null,
-                            icon: const Icon(Icons.chevron_left),
-                            iconSize: 20,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
+                          _paginationIcon(
+                            icon: Icons.chevron_left,
+                            enabled: _currentPage > 1,
+                            onTap: () => setState(() => _currentPage--),
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 4),
                           Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 12,
-                              vertical: 6,
-                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                             decoration: BoxDecoration(
                               color: const Color(0xFF2563EB),
                               borderRadius: BorderRadius.circular(4),
@@ -489,19 +536,16 @@ class _ResellersScreenState extends State<ResellersScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 8),
-                          IconButton(
-                            onPressed: _currentPage < totalPages
-                                ? () {
-                                    setState(() {
-                                      _currentPage++;
-                                    });
-                                  }
-                                : null,
-                            icon: const Icon(Icons.chevron_right),
-                            iconSize: 20,
-                            padding: EdgeInsets.zero,
-                            constraints: const BoxConstraints(),
+                          const SizedBox(width: 4),
+                          _paginationIcon(
+                            icon: Icons.chevron_right,
+                            enabled: _currentPage < totalPages,
+                            onTap: () => setState(() => _currentPage++),
+                          ),
+                          _paginationIcon(
+                            icon: Icons.last_page,
+                            enabled: _currentPage < totalPages,
+                            onTap: () => setState(() => _currentPage = totalPages),
                           ),
                         ],
                       ),
@@ -512,6 +556,26 @@ class _ResellersScreenState extends State<ResellersScreen> {
             ),
             ),
           ],
+        ),
+        );
+        },
+      ),
+    );
+  }
+
+  Widget _paginationIcon({
+    required IconData icon,
+    required bool enabled,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: enabled ? onTap : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2),
+        child: Icon(
+          icon,
+          size: 20,
+          color: Colors.grey[700],
         ),
       ),
     );
