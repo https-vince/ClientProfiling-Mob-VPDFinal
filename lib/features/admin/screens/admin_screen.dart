@@ -142,16 +142,7 @@ class _AdminScreenState extends State<AdminScreen> {
                       value: '34',
                       backgroundColor: Color(0xFFB3E5FC),
                     ),
-                    AnalyticsCard(
-                      title: 'Total Spare Parts',
-                      value: '0',
-                      backgroundColor: Color(0xFFB3E5FC),
-                    ),
-                    AnalyticsCard(
-                      title: 'Available Spare Parts',
-                      value: '1,257',
-                      backgroundColor: Color(0xFFB3E5FC),
-                    ),
+
                   ],
                 );
               },

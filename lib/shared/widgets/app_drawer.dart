@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../features/login/screens/login_screen.dart';
+import '../session_flags.dart';
 import '../../features/direct_client/screens/direct_client_screen.dart';
 import '../../features/dashboard/screens/dashboard_screen.dart';
 import '../../features/resellers/screens/resellers_screen.dart';
@@ -202,6 +203,7 @@ class _AppDrawerState extends State<AppDrawer> {
               icon: Icons.logout,
               label: 'Logout',
               onTap: () {
+                SessionFlags.reset();
                 Navigator.pushAndRemoveUntil(
                   context,
                   PageRouteBuilder(

@@ -46,254 +46,29 @@ class _DayClientsScreenState extends State<DayClientsScreen> {
 
   void _showEditModal(BuildContext screenContext, int index) {
     final originalClient = _clients[index];
-    ScheduleType selectedStatus = originalClient.type;
-    DateTime selectedDate = widget.date;
-
-    showModalBottomSheet(
+    showDialog(
       context: screenContext,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (modalCtx) => StatefulBuilder(
-        builder: (ctx, setModalState) {
-          return Padding(
-            padding:
-                EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(24),
-                  topRight: Radius.circular(24),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 24,
-                    offset: Offset(0, -4),
-                  ),
-                ],
-              ),
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Drag handle
-                  Center(
-                    child: Container(
-                      width: 40,
-                      height: 4,
-                      margin: const EdgeInsets.only(bottom: 20),
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-
-                  // Header
-                  Row(
-                    children: [
-                      const Icon(Icons.person_outline,
-                          color: Color(0xFF2563EB), size: 18),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'EDIT CLIENT',
-                        style: TextStyle(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF2563EB),
-                          letterSpacing: 1.0,
-                        ),
-                      ),
-                      const Spacer(),
-                      GestureDetector(
-                        onTap: () => Navigator.pop(modalCtx),
-                        child: Icon(Icons.close,
-                            color: Colors.grey[400], size: 20),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    originalClient.name,
-                    style: const TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black87,
-                    ),
-                  ),
-
-                  Divider(height: 28, color: Colors.grey[100]),
-
-                  // ── Status picker ──────────────────────────────────────────
-                  Text(
-                    'STATUS',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.grey[500],
-                      letterSpacing: 1.0,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      ScheduleType.pending,
-                      ScheduleType.tentative,
-                      ScheduleType.final_,
-                      ScheduleType.resolved,
-                    ].map((type) {
-                      final isSelected = selectedStatus == type;
-                      final color = ScheduleEvent.colorForType(type);
-                      final label = _labelForType(type);
-                      return GestureDetector(
-                        onTap: () => setModalState(() => selectedStatus = type),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 150),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 18, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: isSelected ? color : color.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(20),
-                            border: Border.all(
-                              color: color,
-                              width: isSelected ? 0 : 1.2,
-                            ),
-                          ),
-                          child: Text(
-                            label,
-                            style: TextStyle(
-                              color: isSelected ? Colors.white : color,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 12,
-                              letterSpacing: 0.3,
-                            ),
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // ── Date reschedule ────────────────────────────────────────
-                  Text(
-                    'RESCHEDULE DATE',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.grey[500],
-                      letterSpacing: 1.0,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  GestureDetector(
-                    onTap: () async {
-                      final picked = await showDatePicker(
-                        context: screenContext,
-                        initialDate: selectedDate,
-                        firstDate: DateTime(2020, 1, 1),
-                        lastDate: DateTime(2030, 12, 31),
-                        builder: (context, child) => Theme(
-                          data: ThemeData.light().copyWith(
-                            colorScheme: const ColorScheme.light(
-                              primary: Color(0xFF2563EB),
-                            ),
-                          ),
-                          child: child!,
-                        ),
-                      );
-                      if (picked != null) {
-                        setModalState(() => selectedDate = picked);
-                      }
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF5F7FA),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey[200]!),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.calendar_month_outlined,
-                              color: Color(0xFF2563EB), size: 20),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Text(
-                              DateFormat('EEEE, MMMM d, yyyy')
-                                  .format(selectedDate),
-                              style: const TextStyle(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w500,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ),
-                          const Icon(Icons.edit_outlined,
-                              color: Color(0xFF2563EB), size: 16),
-                        ],
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // ── Save button ────────────────────────────────────────────
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        final updatedClient =
-                            originalClient.copyWith(type: selectedStatus);
-                        final isDateChanged =
-                            selectedDate.day != widget.date.day ||
-                                selectedDate.month != widget.date.month ||
-                                selectedDate.year != widget.date.year;
-
-                        // Update local list for immediate UI feedback
-                        setState(() {
-                          if (isDateChanged) {
-                            // Client moves away – remove from this screen's list
-                            _clients.removeAt(index);
-                          } else {
-                            // Status change only – update in place
-                            _clients[index] = updatedClient;
-                          }
-                        });
-
-                        // Notify CalendarScreen to sync its events map
-                        widget.onReschedule
-                            ?.call(originalClient, updatedClient, selectedDate);
-
-                        Navigator.pop(modalCtx);
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF2563EB),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        elevation: 0,
-                      ),
-                      child: const Text(
-                        'Save Changes',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
+      barrierDismissible: true,
+      builder: (dialogCtx) => _EditScheduleDialog(
+        client: originalClient,
+        currentDate: widget.date,
+        onSave: (updatedClient, toDate) {
+          final isDateChanged = toDate.day != widget.date.day ||
+              toDate.month != widget.date.month ||
+              toDate.year != widget.date.year;
+          setState(() {
+            if (isDateChanged) {
+              _clients.removeAt(index);
+            } else {
+              _clients[index] = updatedClient;
+            }
+          });
+          widget.onReschedule?.call(originalClient, updatedClient, toDate);
+          Navigator.pop(dialogCtx);
+        },
+        onDelete: () {
+          setState(() => _clients.removeAt(index));
+          Navigator.pop(dialogCtx);
         },
       ),
     );
@@ -446,11 +221,7 @@ class _DayClientsScreenState extends State<DayClientsScreen> {
                 child: Material(
                   color: Colors.transparent,
                   child: InkWell(
-                    onTap: () {
-                      // Return to Calendar with this client ready for drag-reschedule
-                      widget.onClientSelectForDrag?.call(client, widget.date);
-                      Navigator.pop(context);
-                    },
+                    onTap: null,
                     child: Padding(
                       padding: const EdgeInsets.all(16),
                       child: Row(
@@ -514,6 +285,30 @@ class _DayClientsScreenState extends State<DayClientsScreen> {
                               ],
                             ),
                           ),
+                          // Move button — triggers drag-reschedule on Calendar
+                          GestureDetector(
+                            onTap: () {
+                              widget.onClientSelectForDrag
+                                  ?.call(client, widget.date);
+                              Navigator.pop(context);
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(
+                                color: Colors.grey[50],
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(
+                                  color: Colors.grey[200]!,
+                                ),
+                              ),
+                              child: Icon(
+                                Icons.open_with,
+                                size: 16,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
                           // Edit icon — opens the status/date edit modal
                           GestureDetector(
                             onTap: () => _showEditModal(context, index),
@@ -561,5 +356,579 @@ class _DayClientsScreenState extends State<DayClientsScreen> {
       case ScheduleType.name:
         return 'NAME';
     }
+  }
+}
+
+// ─── Edit Schedule Dialog ────────────────────────────────────────────────────
+
+class _EditScheduleDialog extends StatefulWidget {
+  final ScheduleEvent client;
+  final DateTime currentDate;
+  final void Function(ScheduleEvent updated, DateTime toDate) onSave;
+  final VoidCallback onDelete;
+
+  const _EditScheduleDialog({
+    required this.client,
+    required this.currentDate,
+    required this.onSave,
+    required this.onDelete,
+  });
+
+  @override
+  State<_EditScheduleDialog> createState() => _EditScheduleDialogState();
+}
+
+class _EditScheduleDialogState extends State<_EditScheduleDialog> {
+  static const List<String> _shops = [
+    'Nueva Ecija',
+    'Manila',
+    'Bulacan',
+    'Pampanga',
+    'Bataan',
+  ];
+  static const List<String> _serviceTypes = [
+    'DELIVERY & INSTALLATION',
+    'INSTALLATION ONLY',
+    'DELIVERY ONLY',
+    'REPAIR',
+    'MAINTENANCE',
+  ];
+  static const List<String> _technicianOptions = [
+    'N/A',
+    'John Israel Par',
+    'Mikhael Roy Pi',
+    'Technician 3',
+    'Technician 4',
+    'Technician 5',
+  ];
+
+  late final TextEditingController _nameCtrl;
+  late final TextEditingController _contactCtrl;
+  late final TextEditingController _addressCtrl;
+  late final TextEditingController _pinCtrl;
+  late final TextEditingController _linkCtrl;
+  late final TextEditingController _vehiclesCtrl;
+  late final TextEditingController _tollCtrl;
+  late final TextEditingController _gasCtrl;
+  late final TextEditingController _notesCtrl;
+
+  late ScheduleType _status;
+  late NameType _nameType;
+  late String _shop;
+  late String _serviceType;
+  late List<String> _technicians;
+  late DateTime _selectedDate;
+
+  @override
+  void initState() {
+    super.initState();
+    final c = widget.client;
+    _nameCtrl = TextEditingController(text: c.name);
+    _contactCtrl = TextEditingController(text: c.contactNo);
+    _addressCtrl = TextEditingController(text: c.addressLocation);
+    _pinCtrl = TextEditingController(text: c.pinLocation);
+    _linkCtrl = TextEditingController(text: c.locationLink);
+    _vehiclesCtrl = TextEditingController(text: c.vehicles);
+    _tollCtrl = TextEditingController(text: c.tollAmount);
+    _gasCtrl = TextEditingController(text: c.gasAmount);
+    _notesCtrl = TextEditingController(text: c.notes);
+    _status = c.type;
+    _nameType = c.nameType;
+    _shop = _shops.contains(c.shop) ? c.shop : _shops.first;
+    _serviceType = _serviceTypes.contains(c.serviceType)
+        ? c.serviceType
+        : _serviceTypes.first;
+    _technicians = List<String>.from(c.technicians.length == 5
+        ? c.technicians
+        : List.filled(5, 'N/A'));
+    _selectedDate = widget.currentDate;
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _contactCtrl.dispose();
+    _addressCtrl.dispose();
+    _pinCtrl.dispose();
+    _linkCtrl.dispose();
+    _vehiclesCtrl.dispose();
+    _tollCtrl.dispose();
+    _gasCtrl.dispose();
+    _notesCtrl.dispose();
+    super.dispose();
+  }
+
+  String _statusLabel(ScheduleType t) {
+    switch (t) {
+      case ScheduleType.pending:
+        return 'PENDING';
+      case ScheduleType.tentative:
+        return 'TENTATIVE';
+      case ScheduleType.final_:
+        return 'FINAL';
+      case ScheduleType.resolved:
+        return 'RESOLVED';
+      case ScheduleType.name:
+        return 'NAME';
+    }
+  }
+
+  String _statusBadgeLabel(ScheduleType t) {
+    switch (t) {
+      case ScheduleType.pending:
+        return 'Pending';
+      case ScheduleType.tentative:
+        return 'Tentative';
+      case ScheduleType.final_:
+        return 'Final';
+      case ScheduleType.resolved:
+        return 'Resolved Concern';
+      case ScheduleType.name:
+        return 'Name';
+    }
+  }
+
+  InputDecoration _fieldDecoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: TextStyle(fontSize: 12, color: Colors.grey[600]),
+      filled: true,
+      fillColor: const Color(0xFFF5F7FA),
+      contentPadding:
+          const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(6),
+        borderSide: BorderSide(color: Colors.grey[300]!),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(6),
+        borderSide: BorderSide(color: Colors.grey[300]!),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(6),
+        borderSide:
+            const BorderSide(color: Color(0xFF2563EB), width: 1.5),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final statusColor = ScheduleEvent.colorForType(_status);
+    final createdBy = widget.client.createdBy.isEmpty
+        ? 'Event created by User'
+        : widget.client.createdBy;
+
+    return Dialog(
+      insetPadding:
+          const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      backgroundColor: Colors.white,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ── Header ──────────────────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.fromLTRB(20, 16, 16, 16),
+            decoration: const BoxDecoration(
+              color: Color(0xFFEEF4FF),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Row(
+              children: [
+                const Text(
+                  'Edit Schedule',
+                  style: TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: statusColor,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    _statusBadgeLabel(_status),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () => Navigator.pop(context),
+                  child: Icon(Icons.close, color: Colors.grey[500], size: 22),
+                ),
+              ],
+            ),
+          ),
+
+          // ── Scrollable content ───────────────────────────────────────────
+          Flexible(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Client Name | Contact No.
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _nameCtrl,
+                          style: const TextStyle(fontSize: 13),
+                          decoration: _fieldDecoration('Client Name'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: _contactCtrl,
+                          style: const TextStyle(fontSize: 13),
+                          keyboardType: TextInputType.phone,
+                          decoration: _fieldDecoration('Contact No.'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Default | *Asterisk radio
+                  Row(
+                    children: [
+                      Radio<NameType>(
+                        value: NameType.default_,
+                        groupValue: _nameType,
+                        activeColor: const Color(0xFF2563EB),
+                        onChanged: (v) =>
+                            setState(() => _nameType = v!),
+                        materialTapTargetSize:
+                            MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      const Text('Default',
+                          style: TextStyle(fontSize: 13)),
+                      const SizedBox(width: 16),
+                      Radio<NameType>(
+                        value: NameType.asterisk,
+                        groupValue: _nameType,
+                        activeColor: const Color(0xFF2563EB),
+                        onChanged: (v) =>
+                            setState(() => _nameType = v!),
+                        materialTapTargetSize:
+                            MaterialTapTargetSize.shrinkWrap,
+                        visualDensity: VisualDensity.compact,
+                      ),
+                      const Text('* Asterisk',
+                          style: TextStyle(fontSize: 13)),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Shop dropdown
+                  _buildLabel('Shop'),
+                  const SizedBox(height: 6),
+                  _buildDropdown<String>(
+                    value: _shop,
+                    items: _shops,
+                    onChanged: (v) => setState(() => _shop = v!),
+                    labelFn: (v) => v,
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Address Location
+                  TextField(
+                    controller: _addressCtrl,
+                    style: const TextStyle(fontSize: 13),
+                    decoration: _fieldDecoration('Address Location'),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Pin Location | Location Link
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _pinCtrl,
+                          style: const TextStyle(fontSize: 13),
+                          decoration: _fieldDecoration('Pin Location'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: _linkCtrl,
+                          style: const TextStyle(fontSize: 13),
+                          decoration: _fieldDecoration('Location Link'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Type Of Service | Vehicle/s
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel('Type Of Service'),
+                            const SizedBox(height: 6),
+                            _buildDropdown<String>(
+                              value: _serviceType,
+                              items: _serviceTypes,
+                              onChanged: (v) =>
+                                  setState(() => _serviceType = v!),
+                              labelFn: (v) => v,
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextField(
+                          controller: _vehiclesCtrl,
+                          style: const TextStyle(fontSize: 13),
+                          decoration: _fieldDecoration('Vehicle/s'),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Toll Amount | Gas Amount | Status
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _tollCtrl,
+                          style: const TextStyle(fontSize: 13),
+                          keyboardType: TextInputType.number,
+                          decoration: _fieldDecoration('Toll Amount'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextField(
+                          controller: _gasCtrl,
+                          style: const TextStyle(fontSize: 13),
+                          keyboardType: TextInputType.number,
+                          decoration: _fieldDecoration('Gas Amount'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _buildLabel('Status'),
+                            const SizedBox(height: 6),
+                            _buildDropdown<ScheduleType>(
+                              value: _status,
+                              items: [
+                                ScheduleType.pending,
+                                ScheduleType.tentative,
+                                ScheduleType.final_,
+                                ScheduleType.resolved,
+                              ],
+                              onChanged: (v) =>
+                                  setState(() => _status = v!),
+                              labelFn: _statusLabel,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Technician
+                  _buildLabel('Technician'),
+                  const SizedBox(height: 6),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: List.generate(5, (i) {
+                      return SizedBox(
+                        width: (MediaQuery.of(context).size.width -
+                                    56 -
+                                    32) /
+                                2.5,
+                        child: _buildDropdown<String>(
+                          value: _technicians[i],
+                          items: _technicianOptions,
+                          onChanged: (v) => setState(
+                              () => _technicians[i] = v!),
+                          labelFn: (v) => v,
+                        ),
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Notes
+                  TextField(
+                    controller: _notesCtrl,
+                    style: const TextStyle(fontSize: 13),
+                    maxLines: 3,
+                    decoration: _fieldDecoration('Notes'),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Created by footer
+                  Text(
+                    createdBy,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey[500],
+                      fontStyle: FontStyle.italic,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+            ),
+          ),
+
+          // ── Footer buttons ───────────────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+            decoration: BoxDecoration(
+              border: Border(
+                  top: BorderSide(color: Colors.grey[200]!)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                // Delete
+                OutlinedButton(
+                  onPressed: widget.onDelete,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFFDC2626),
+                    side: const BorderSide(color: Color(0xFFDC2626)),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6)),
+                  ),
+                  child: const Text('Delete',
+                      style: TextStyle(fontSize: 13)),
+                ),
+                const SizedBox(width: 8),
+                // Copy
+                ElevatedButton(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Schedule copied'),
+                          duration: Duration(seconds: 1)),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF374151),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6)),
+                    elevation: 0,
+                  ),
+                  child: const Text('Copy',
+                      style: TextStyle(fontSize: 13)),
+                ),
+                const SizedBox(width: 8),
+                // Save Schedule
+                ElevatedButton(
+                  onPressed: () {
+                    final updatedClient = widget.client.copyWith(
+                      name: _nameCtrl.text.trim(),
+                      type: _status,
+                      contactNo: _contactCtrl.text.trim(),
+                      nameType: _nameType,
+                      shop: _shop,
+                      addressLocation: _addressCtrl.text.trim(),
+                      pinLocation: _pinCtrl.text.trim(),
+                      locationLink: _linkCtrl.text.trim(),
+                      serviceType: _serviceType,
+                      vehicles: _vehiclesCtrl.text.trim(),
+                      tollAmount: _tollCtrl.text.trim(),
+                      gasAmount: _gasCtrl.text.trim(),
+                      technicians: List.from(_technicians),
+                      notes: _notesCtrl.text.trim(),
+                    );
+                    widget.onSave(updatedClient, _selectedDate);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2563EB),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 16, vertical: 10),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(6)),
+                    elevation: 0,
+                  ),
+                  child: const Text('Save Schedule',
+                      style: TextStyle(fontSize: 13)),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildLabel(String text) {
+    return Text(
+      text,
+      style: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        color: Colors.grey[700],
+      ),
+    );
+  }
+
+  Widget _buildDropdown<T>({
+    required T value,
+    required List<T> items,
+    required ValueChanged<T?> onChanged,
+    required String Function(T) labelFn,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF5F7FA),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<T>(
+          value: value,
+          isExpanded: true,
+          isDense: true,
+          style: const TextStyle(fontSize: 13, color: Colors.black87),
+          items: items
+              .map((e) => DropdownMenuItem<T>(
+                    value: e,
+                    child: Text(labelFn(e),
+                        overflow: TextOverflow.ellipsis),
+                  ))
+              .toList(),
+          onChanged: onChanged,
+        ),
+      ),
+    );
   }
 }

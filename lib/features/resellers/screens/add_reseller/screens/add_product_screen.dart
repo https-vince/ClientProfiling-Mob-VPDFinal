@@ -46,7 +46,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
   static const _modelCodes = [
     'CWC027MOCR8', 'CWC028MOCR8', 'CWC029MOCR8', 'Other'
   ];
-  static const _unitTypes = ['UCM', 'Itemized', 'Bundle'];
+  static const _unitTypes = ['UOM', 'Itemized', 'Bundle'];
   static const _logistics = [
     'Pick-up', 'Door-to-Door', 'Freight', 'Courier', 'Air Cargo'
   ];
@@ -250,7 +250,7 @@ class _AddProductScreenState extends State<AddProductScreen> {
         _buildDropdown(
           value: _unit,
           items: _unitTypes,
-          hint: 'UCM',
+          hint: 'UOM',
           icon: Icons.inventory_2_outlined,
           onChanged: (val) => setState(() => _unit = val),
         ),

@@ -26,7 +26,7 @@ class _ResellerDetailScreenState extends State<ResellerDetailScreen> {
       'purchaseOrder': 'PO-2024-001',
       'modelCode': 'CWG27MDCRB',
       'supplierType': 'Other',
-      'uom': 'UCM',
+      'uom': 'UOM',
       'quantity': 1,
       'poNumber': 'PO-2024-001',
       'drNumber': 'DR-2024-001',

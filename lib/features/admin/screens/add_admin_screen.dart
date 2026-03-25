@@ -18,10 +18,12 @@ class _AddAdminScreenState extends State<AddAdminScreen> {
   final _phoneController = TextEditingController();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _addressController = TextEditingController();
 
   String? _selectedRole;
   bool _obscurePassword = true;
+  bool _obscureConfirmPassword = true;
 
   final List<String> _roles = ['Super Admin', 'Admin', 'Salesperson', 'Technician'];
 
@@ -34,6 +36,7 @@ class _AddAdminScreenState extends State<AddAdminScreen> {
     _phoneController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     _addressController.dispose();
     super.dispose();
   }
@@ -136,6 +139,32 @@ class _AddAdminScreenState extends State<AddAdminScreen> {
                   ),
                   onPressed: () =>
                       setState(() => _obscurePassword = !_obscurePassword),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            // Confirm Password
+            _buildLabel('Confirm Password'),
+            TextFormField(
+              controller: _confirmPasswordController,
+              obscureText: _obscureConfirmPassword,
+              validator: (v) {
+                if (v == null || v.isEmpty) return 'Please confirm your password';
+                if (v != _passwordController.text) return 'Passwords do not match';
+                return null;
+              },
+              decoration: _inputDecoration('Re-enter your Password').copyWith(
+                suffixIcon: IconButton(
+                  icon: Icon(
+                    _obscureConfirmPassword
+                        ? Icons.visibility_off_outlined
+                        : Icons.visibility_outlined,
+                    size: 20,
+                    color: Colors.grey[500],
+                  ),
+                  onPressed: () => setState(
+                      () => _obscureConfirmPassword = !_obscureConfirmPassword),
                 ),
               ),
             ),
