@@ -50,4 +50,34 @@ class ProductModel {
       paymentSystem: paymentSystem ?? this.paymentSystem,
     );
   }
+
+  factory ProductModel.fromJson(Map<String, dynamic> json) {
+    return ProductModel(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      brand: json['brand'] ?? '',
+      category: json['category'] ?? '',
+      description: json['description'] ?? '',
+      modelCode: json['modelCode'] ?? '',
+      washerCode: json['washerCode'] ?? '',
+      dryerCode: json['dryerCode'] ?? '',
+      stylerCode: json['stylerCode'] ?? '',
+      paymentSystem: json['paymentSystem'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'brand': brand,
+      'category': category,
+      'description': description,
+      'modelCode': modelCode,
+      'washerCode': washerCode,
+      'dryerCode': dryerCode,
+      'stylerCode': stylerCode,
+      'paymentSystem': paymentSystem,
+    };
+  }
 }
